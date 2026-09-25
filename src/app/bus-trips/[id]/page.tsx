@@ -6,6 +6,7 @@ import { LabelPhotoGallery } from "@/components/label-photo-gallery";
 import { BusTripInvoiceForm } from "@/components/bus-trip-invoice-form";
 import { ReconciliationChecklist } from "@/components/reconciliation-checklist";
 import { MismatchBadge } from "@/components/mismatch-badge";
+import { DeleteBusTripButton } from "@/components/delete-bus-trip-button";
 
 export default async function BusTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,15 +41,18 @@ export default async function BusTripPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 p-4">
-      <div>
-        <h1 className="text-lg font-semibold">
-          {trip.terminal_name}
-          {trip.bus_company && ` · ${trip.bus_company} (${trip.vehicle_number})`}
-        </h1>
-        <p className="mt-1 flex items-center gap-2 text-sm text-zinc-500">
-          {trip.trip_date}
-          <MismatchBadge isMismatch={isMismatch} />
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">
+            {trip.terminal_name}
+            {trip.bus_company && ` · ${trip.bus_company} (${trip.vehicle_number})`}
+          </h1>
+          <p className="mt-1 flex items-center gap-2 text-sm text-zinc-500">
+            {trip.trip_date}
+            <MismatchBadge isMismatch={isMismatch} />
+          </p>
+        </div>
+        <DeleteBusTripButton busTripId={id} redirectTo="/bus-trips" />
       </div>
 
       <OrderAssignmentList

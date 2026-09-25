@@ -59,6 +59,28 @@ export async function updateBusTripInvoice(busTripId: string, formData: FormData
   revalidatePath("/bus-trips");
 }
 
+// 버스 편을 지우면 배정된 주문은 orders.bus_trip_id가 자동으로 null이 되어 미배정으로
+// 돌아간다 (FK on delete set null). label_photos 행은 cascade로 같이 지워지지만
+// Storage의 실제 파일은 별도로 지워야 남지 않는다.
+export async function deleteBusTrip(busTripId: string) {
+  const supabase = await createClient();
+
+  const { data: photos } = await supabase
+    .from("label_photos")
+    .select("storage_path")
+    .eq("bus_trip_id", busTripId);
+
+  if (photos && photos.length > 0) {
+    await supabase.storage.from("label-photos").remove(photos.map((p) => p.storage_path));
+  }
+
+  const { error } = await supabase.from("bus_trips").delete().eq("id", busTripId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/bus-trips");
+  revalidatePath("/history");
+}
+
 export async function assignOrderToTrip(orderId: string, busTripId: string | null) {
   const supabase = await createClient();
   const { error } = await supabase.from("orders").update({ bus_trip_id: busTripId }).eq("id", orderId);

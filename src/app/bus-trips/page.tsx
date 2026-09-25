@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BusTripForm } from "@/components/bus-trip-form";
 import { DatePicker } from "@/components/date-picker";
 import { MismatchBadge } from "@/components/mismatch-badge";
+import { DeleteBusTripButton } from "@/components/delete-bus-trip-button";
 
 function todayKST() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -43,12 +44,8 @@ export default async function BusTripsPage({
           <p className="text-sm text-zinc-500">이 날짜에 등록된 버스 편이 없습니다.</p>
         )}
         {(trips ?? []).map((trip) => (
-          <Link
-            key={trip.bus_trip_id}
-            href={`/bus-trips/${trip.bus_trip_id}`}
-            className="flex items-center justify-between rounded border p-3 hover:bg-zinc-50"
-          >
-            <div>
+          <div key={trip.bus_trip_id} className="flex items-center justify-between rounded border p-3 hover:bg-zinc-50">
+            <Link href={`/bus-trips/${trip.bus_trip_id}`} className="flex-1">
               <p className="font-medium">
                 {trip.terminal_name}
                 {trip.bus_company && ` · ${trip.bus_company} (${trip.vehicle_number})`}
@@ -58,9 +55,12 @@ export default async function BusTripsPage({
                 {trip.invoice_box_count === null ? "미입력" : `${trip.invoice_box_count}박스`} · 주문{" "}
                 {trip.checked_order_count}/{trip.assigned_order_count}건
               </p>
+            </Link>
+            <div className="flex items-center gap-3">
+              <MismatchBadge isMismatch={trip.is_mismatch} />
+              <DeleteBusTripButton busTripId={trip.bus_trip_id} />
             </div>
-            <MismatchBadge isMismatch={trip.is_mismatch} />
-          </Link>
+          </div>
         ))}
       </div>
     </main>
