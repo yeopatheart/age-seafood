@@ -8,57 +8,44 @@ type Profile = {
   created_at: string;
 };
 
+// 트립은 터미널명 + 날짜만으로 만든다. 버스회사·차량번호·수량 같은 송장 정보는
+// 텍스트로 입력하지 않고 사진(label_photos, photo_type='invoice')으로 남긴다.
 type BusTrip = {
   id: string;
   trip_date: string;
   terminal_name: string;
-  // 버스 편은 터미널명만으로 먼저 만들고, 버스 송장(회사/차량번호/수량)은
-  // 버스 출발 직전 종이 송장을 받은 뒤에 채워 넣는다 — 그래서 nullable이다.
-  bus_company: string | null;
-  vehicle_number: string | null;
-  destination: string | null;
-  invoice_box_count: number | null;
-  departure_time: string | null;
-  arrival_time: string | null;
   created_by: string | null;
   created_at: string;
 };
 
-type Order = {
-  id: string;
-  order_date: string;
-  terminal_name: string;
-  customer_name: string;
-  box_count: number;
-  bus_trip_id: string | null;
-  checked: boolean;
-  checked_by: string | null;
-  checked_at: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-};
+type PhotoType = "label" | "invoice";
 
 type LabelPhoto = {
   id: string;
   bus_trip_id: string;
+  photo_type: PhotoType;
   storage_path: string;
   taken_by: string | null;
   taken_at: string;
 };
 
-type BusTripReconciliation = {
+// 검수는 정상/문제있음 구분 없이 "검수완료" 하나뿐이다 (스와이프로 확인). 문제가 있으면 메모에 적는다.
+type TripReview = {
+  id: string;
   bus_trip_id: string;
+  note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string;
+};
+
+type TripReviewStatus = {
+  trip_id: string;
   trip_date: string;
   terminal_name: string;
-  bus_company: string | null;
-  vehicle_number: string | null;
-  invoice_box_count: number | null;
-  assigned_order_count: number;
-  checked_order_count: number;
-  checked_box_count: number;
-  // 송장 수량이 아직 없으면 대사 여부를 판단할 수 없어 null(대기)
-  is_mismatch: boolean | null;
+  label_photo_count: number;
+  invoice_photo_count: number;
+  latest_note: string | null;
+  latest_reviewed_at: string | null;
 };
 
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
@@ -76,42 +63,21 @@ export type Database = {
         BusTrip,
         Pick<BusTrip, "trip_date" | "terminal_name" | "created_by"> & {
           id?: string;
-          bus_company?: string | null;
-          vehicle_number?: string | null;
-          destination?: string | null;
-          invoice_box_count?: number | null;
-          departure_time?: string | null;
-          arrival_time?: string | null;
           created_at?: string;
-        }
-      >;
-      orders: TableDef<
-        Order,
-        Omit<
-          Order,
-          | "id"
-          | "bus_trip_id"
-          | "checked"
-          | "checked_by"
-          | "checked_at"
-          | "created_at"
-          | "updated_at"
-        > & {
-          id?: string;
-          bus_trip_id?: string | null;
-          checked?: boolean;
-          created_at?: string;
-          updated_at?: string;
         }
       >;
       label_photos: TableDef<
         LabelPhoto,
         Omit<LabelPhoto, "id" | "taken_at"> & { id?: string; taken_at?: string }
       >;
+      trip_reviews: TableDef<
+        TripReview,
+        Omit<TripReview, "id" | "reviewed_at"> & { id?: string; reviewed_at?: string }
+      >;
     };
     Views: {
-      bus_trip_reconciliation: {
-        Row: BusTripReconciliation;
+      trip_review_status: {
+        Row: TripReviewStatus;
         Relationships: [];
       };
     };

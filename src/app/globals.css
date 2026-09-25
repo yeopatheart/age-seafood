@@ -19,6 +19,20 @@
   }
 }
 
+html {
+  /* 기본값은 "크게"(18px). /settings에서 사용자가 직접 바꿀 수 있다 */
+  font-size: 112.5%;
+}
+html[data-font-size="normal"] {
+  font-size: 100%;
+}
+html[data-font-size="large"] {
+  font-size: 112.5%;
+}
+html[data-font-size="xlarge"] {
+  font-size: 125%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

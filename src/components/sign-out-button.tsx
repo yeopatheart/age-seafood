@@ -14,7 +14,10 @@ export function SignOutButton() {
   }
 
   return (
-    <button onClick={handleSignOut} className="text-sm text-zinc-600 hover:underline">
+    <button
+      onClick={handleSignOut}
+      className="flex h-10 items-center rounded-full border-2 border-transparent px-4 text-base font-semibold text-zinc-700"
+    >
       로그아웃
     </button>
   );

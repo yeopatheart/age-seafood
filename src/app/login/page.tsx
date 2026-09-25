@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,17 +27,17 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/orders");
+    router.replace("/deliveries");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-xl font-semibold">age-seafood 로그인</h1>
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 rounded-3xl bg-white p-6 shadow-md">
+        <h1 className="text-2xl font-bold">age-seafood 로그인</h1>
 
-        <div className="space-y-1">
-          <label htmlFor="email" className="text-sm font-medium">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-lg font-medium">
             이메일
           </label>
           <input
@@ -46,12 +47,12 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded border px-3 py-2"
+            className="h-14 w-full rounded-2xl border-2 border-zinc-200 px-4 text-lg"
           />
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="password" className="text-sm font-medium">
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-lg font-medium">
             비밀번호
           </label>
           <input
@@ -61,19 +62,15 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded border px-3 py-2"
+            className="h-14 w-full rounded-2xl border-2 border-zinc-200 px-4 text-lg"
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-lg text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-black py-2 text-white disabled:opacity-50"
-        >
+        <Button type="submit" disabled={loading} className="min-h-14 w-full">
           {loading ? "로그인 중..." : "로그인"}
-        </button>
+        </Button>
       </form>
     </div>
   );

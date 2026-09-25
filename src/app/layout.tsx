@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { NavBar } from "@/components/nav-bar";
 import "./globals.css";
 
@@ -15,7 +16,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "age-seafood",
-  description: "터미널 발송·송장 대사",
+  description: "통영 수산물 배송 촬영·검수",
+  icons: { apple: "/icons/apple-touch" },
+  // 홈 화면에 추가했을 때 브라우저 주소창 없이 앱처럼 보이게 한다 (iOS)
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "age-seafood" },
+  // 구버전 iOS는 표준 mobile-web-app-capable 대신 이 태그를 본다 — 둘 다 넣어 호환성을 넓힌다
+  other: { "apple-mobile-web-app-capable": "yes" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#18181b",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,10 +33,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      // data-font-size는 beforeInteractive 스크립트가 hydration 전에 붙인다 — 의도된 서버/클라이언트 불일치
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        <Script
+          id="apply-font-size"
+          strategy="beforeInteractive"
+          // 글자 크기 설정을 하이드레이션 전에 적용해 깜빡임을 줄인다 (localStorage는 개인정보 보호 모드 등에서 막힐 수 있어 try/catch)
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var s=localStorage.getItem('age-seafood-font-size');if(s)document.documentElement.setAttribute('data-font-size',s);}catch(e){}",
+          }}
+        />
         <NavBar />
-        {children}
+        <div className="flex-1 bg-zinc-50 pb-28">{children}</div>
       </body>
     </html>
   );
