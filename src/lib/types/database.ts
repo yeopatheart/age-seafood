@@ -12,10 +12,12 @@ type BusTrip = {
   id: string;
   trip_date: string;
   terminal_name: string;
-  bus_company: string;
-  vehicle_number: string;
+  // 버스 편은 터미널명만으로 먼저 만들고, 버스 송장(회사/차량번호/수량)은
+  // 버스 출발 직전 종이 송장을 받은 뒤에 채워 넣는다 — 그래서 nullable이다.
+  bus_company: string | null;
+  vehicle_number: string | null;
   destination: string | null;
-  invoice_box_count: number;
+  invoice_box_count: number | null;
   departure_time: string | null;
   arrival_time: string | null;
   created_by: string | null;
@@ -49,13 +51,14 @@ type BusTripReconciliation = {
   bus_trip_id: string;
   trip_date: string;
   terminal_name: string;
-  bus_company: string;
-  vehicle_number: string;
-  invoice_box_count: number;
+  bus_company: string | null;
+  vehicle_number: string | null;
+  invoice_box_count: number | null;
   assigned_order_count: number;
   checked_order_count: number;
   checked_box_count: number;
-  is_mismatch: boolean;
+  // 송장 수량이 아직 없으면 대사 여부를 판단할 수 없어 null(대기)
+  is_mismatch: boolean | null;
 };
 
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
@@ -71,7 +74,16 @@ export type Database = {
       profiles: TableDef<Profile, Pick<Profile, "id" | "display_name">>;
       bus_trips: TableDef<
         BusTrip,
-        Omit<BusTrip, "id" | "created_at"> & { id?: string; created_at?: string }
+        Pick<BusTrip, "trip_date" | "terminal_name" | "created_by"> & {
+          id?: string;
+          bus_company?: string | null;
+          vehicle_number?: string | null;
+          destination?: string | null;
+          invoice_box_count?: number | null;
+          departure_time?: string | null;
+          arrival_time?: string | null;
+          created_at?: string;
+        }
       >;
       orders: TableDef<
         Order,
