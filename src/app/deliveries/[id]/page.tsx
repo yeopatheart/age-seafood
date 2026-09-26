@@ -25,17 +25,19 @@ export default async function DeliveryPage({ params }: { params: Promise<{ id: s
       : { data: [] };
   const reviewerNames = new Map((reviewers ?? []).map((r) => [r.id, r.display_name]));
 
-  const withSignedUrls = async (type: "label" | "invoice") =>
-    Promise.all(
-      (photos ?? [])
-        .filter((p) => p.photo_type === type)
-        .map(async (photo) => {
-          const { data } = await supabase.storage.from("label-photos").createSignedUrl(photo.storage_path, 3600);
-          return { id: photo.id, url: data?.signedUrl ?? "" };
-        }),
-    );
+  // 사진마다 서명 URL을 따로 요청하면 사진이 많아질수록 느려진다 — 한 번에 배치로 발급받는다.
+  const paths = (photos ?? []).map((p) => p.storage_path);
+  const { data: signedUrls } =
+    paths.length > 0 ? await supabase.storage.from("label-photos").createSignedUrls(paths, 3600) : { data: [] };
+  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? ""]));
 
-  const [labelPhotos, invoicePhotos] = await Promise.all([withSignedUrls("label"), withSignedUrls("invoice")]);
+  const toGalleryItems = (type: "label" | "invoice") =>
+    (photos ?? [])
+      .filter((p) => p.photo_type === type)
+      .map((p) => ({ id: p.id, url: urlByPath.get(p.storage_path) ?? "" }));
+
+  const labelPhotos = toGalleryItems("label");
+  const invoicePhotos = toGalleryItems("invoice");
   const isReviewed = !!reviews && reviews.length > 0;
 
   return (
@@ -53,7 +55,7 @@ export default async function DeliveryPage({ params }: { params: Promise<{ id: s
 
       <section className="space-y-3 rounded-3xl bg-white p-4 shadow-sm">
         <h2 className="text-xl font-semibold">택배박스 라벨 사진 ({labelPhotos.length}장)</h2>
-        <PhotoCaptureButton deliveryId={id} photoType="label" label="라벨 사진 촬영" multiple />
+        <PhotoCaptureButton deliveryId={id} photoType="label" label="라벨 사진 선택/촬영 (여러 장)" multiple />
         <PhotoGallery photos={labelPhotos} alt="박스 라벨 사진" emptyText="아직 라벨 사진이 없습니다." />
       </section>
 
