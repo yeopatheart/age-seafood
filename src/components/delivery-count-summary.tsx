@@ -10,17 +10,22 @@ export function DeliveryCountSummary({
   const matches = invoiceBoxCount === labelPhotoCount;
 
   return (
-    <>
-      <p className="text-base text-zinc-700">라벨 사진 {labelPhotoCount}장</p>
-      <p className="text-base text-zinc-700">
-        버스 송장 사진 {invoicePhotoCount}장
-        {invoiceBoxCount !== null && (
-          <span className={matches ? "text-green-700" : "text-red-600"}>
-            {" "}
-            · 수량 {invoiceBoxCount} {matches ? "일치" : "불일치"}
-          </span>
-        )}
-      </p>
-    </>
+    <div className="flex flex-wrap items-center gap-2 text-base">
+      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-600">
+        택배송장 <span className="tabular-nums font-bold text-zinc-900">{labelPhotoCount}</span>장
+      </span>
+      <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1.5 font-medium text-zinc-600">
+        버스송장 <span className="tabular-nums font-bold text-zinc-900">{invoicePhotoCount}</span>장
+      </span>
+      {invoiceBoxCount !== null && (
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold ${
+            matches ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+          }`}
+        >
+          수량 <span className="tabular-nums">{invoiceBoxCount}</span> {matches ? "일치" : "불일치"}
+        </span>
+      )}
+    </div>
   );
 }

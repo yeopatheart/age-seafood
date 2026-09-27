@@ -47,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <NavBar />
-        <div className="flex-1 bg-zinc-50 pb-28">{children}</div>
+        <div className="flex-1 bg-zinc-100 pb-24">{children}</div>
       </body>
     </html>
   );

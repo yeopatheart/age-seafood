@@ -5,5 +5,5 @@ export default async function Home() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 
-  redirect(data?.claims ? "/deliveries" : "/login");
+  redirect(data?.claims ? "/capture" : "/login");
 }

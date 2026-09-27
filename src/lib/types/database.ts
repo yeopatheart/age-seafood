@@ -16,6 +16,7 @@ type BusTrip = {
   trip_date: string;
   terminal_name: string;
   invoice_box_count: number | null;
+  departure_time: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -49,6 +50,7 @@ type TripReviewStatus = {
   latest_note: string | null;
   latest_reviewed_at: string | null;
   invoice_box_count: number | null;
+  departure_time: string | null;
 };
 
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
@@ -68,6 +70,7 @@ export type Database = {
           id?: string;
           created_at?: string;
           invoice_box_count?: number | null;
+          departure_time?: string | null;
         }
       >;
       label_photos: TableDef<

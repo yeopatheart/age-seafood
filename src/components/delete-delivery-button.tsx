@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteDelivery } from "@/app/deliveries/actions";
-import { Button } from "@/components/ui/button";
+import { deleteDelivery } from "@/app/actions";
 
 export function DeleteDeliveryButton({ deliveryId, redirectTo }: { deliveryId: string; redirectTo?: string }) {
   const router = useRouter();
@@ -20,8 +19,12 @@ export function DeleteDeliveryButton({ deliveryId, redirectTo }: { deliveryId: s
   }
 
   return (
-    <Button variant="danger" onClick={handleDelete} disabled={pending}>
+    <button
+      onClick={handleDelete}
+      disabled={pending}
+      className="flex h-11 shrink-0 items-center gap-1 rounded-full px-3 text-base font-semibold text-rose-500 transition-colors active:bg-rose-50 disabled:opacity-40"
+    >
       {pending ? "삭제 중..." : "삭제"}
-    </Button>
+    </button>
   );
 }

@@ -43,10 +43,8 @@ export function FontSizeToggle() {
         <button
           key={level.value}
           onClick={() => apply(level.value)}
-          className={`min-h-14 flex-1 rounded-full border-2 text-lg font-semibold ${
-            current === level.value
-              ? "border-black bg-black text-white"
-              : "border-zinc-200 bg-white text-zinc-900"
+          className={`min-h-14 flex-1 rounded-2xl text-lg font-semibold transition-colors ${
+            current === level.value ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-600"
           }`}
         >
           {level.label}

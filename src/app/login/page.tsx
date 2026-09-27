@@ -27,17 +27,20 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/deliveries");
+    router.replace("/capture");
     router.refresh();
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 rounded-3xl bg-white p-6 shadow-md">
-        <h1 className="text-2xl font-bold">age-seafood 로그인</h1>
+    <div className="flex min-h-screen items-center justify-center bg-zinc-100 p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-6 rounded-3xl bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_16px_32px_-12px_rgba(16,24,40,0.16)]"
+      >
+        <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">age-seafood</h1>
 
         <div className="space-y-2">
-          <label htmlFor="email" className="text-lg font-medium">
+          <label htmlFor="email" className="text-base font-semibold text-zinc-700">
             이메일
           </label>
           <input
@@ -47,12 +50,12 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-14 w-full rounded-2xl border-2 border-zinc-200 px-4 text-lg"
+            className="h-14 w-full rounded-2xl bg-zinc-100 px-4 text-lg text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="password" className="text-lg font-medium">
+          <label htmlFor="password" className="text-base font-semibold text-zinc-700">
             비밀번호
           </label>
           <input
@@ -62,11 +65,11 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="h-14 w-full rounded-2xl border-2 border-zinc-200 px-4 text-lg"
+            className="h-14 w-full rounded-2xl bg-zinc-100 px-4 text-lg text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        {error && <p className="text-lg text-red-600">{error}</p>}
+        {error && <p className="text-lg font-medium text-rose-600">{error}</p>}
 
         <Button type="submit" disabled={loading} className="min-h-14 w-full">
           {loading ? "로그인 중..." : "로그인"}

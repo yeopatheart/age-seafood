@@ -12,12 +12,12 @@ export async function NavBar() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-2 bg-white px-4 py-3">
-        <span className="text-lg font-bold">age-seafood</span>
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between gap-2 bg-white px-4 py-3.5">
+        <span className="text-lg font-extrabold tracking-tight text-zinc-900">age-seafood</span>
+        <div className="flex items-center gap-1">
           <Link
             href="/settings"
-            className="flex h-10 items-center rounded-full border-2 border-zinc-200 px-4 text-base font-semibold text-zinc-900"
+            className="flex h-10 items-center rounded-full px-4 text-base font-semibold text-zinc-600 transition-colors active:bg-zinc-100"
           >
             설정
           </Link>
