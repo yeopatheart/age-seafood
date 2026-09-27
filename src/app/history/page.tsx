@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
+import { DeliveryCountSummary } from "@/components/delivery-count-summary";
 import { HistoryFilters } from "@/components/history-filters";
 import { PageHero } from "@/components/ui/page-hero";
 
@@ -42,8 +43,11 @@ export default async function HistoryPage({
               <p className="text-lg font-bold">
                 {delivery.trip_date} · {delivery.terminal_name}
               </p>
-              <p className="text-base text-zinc-700">라벨 사진 {delivery.label_photo_count}장</p>
-              <p className="text-base text-zinc-700">버스 송장 사진 {delivery.invoice_photo_count}장</p>
+              <DeliveryCountSummary
+                labelPhotoCount={delivery.label_photo_count}
+                invoicePhotoCount={delivery.invoice_photo_count}
+                invoiceBoxCount={delivery.invoice_box_count}
+              />
             </div>
             <ReviewStatusBadge reviewed={delivery.latest_reviewed_at !== null} />
           </Link>

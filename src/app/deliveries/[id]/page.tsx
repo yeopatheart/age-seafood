@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PhotoCaptureButton } from "@/components/photo-capture-button";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { InvoiceSection } from "@/components/invoice-section";
 import { DeleteDeliveryButton } from "@/components/delete-delivery-button";
 import { ReviewForm } from "@/components/review-form";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
@@ -61,12 +62,12 @@ export default async function DeliveryPage({ params }: { params: Promise<{ id: s
 
       <section className="space-y-3 rounded-3xl bg-white p-4 shadow-sm">
         <h2 className="text-xl font-semibold">버스 송장 사진 ({invoicePhotos.length}장, 최대 1장)</h2>
-        <PhotoCaptureButton
+        <InvoiceSection
           deliveryId={id}
-          photoType="invoice"
-          label={invoicePhotos.length > 0 ? "버스 송장 사진 다시 촬영" : "버스 송장 사진 촬영"}
+          photos={invoicePhotos}
+          confirmedCount={delivery.invoice_box_count}
+          labelPhotoCount={labelPhotos.length}
         />
-        <PhotoGallery photos={invoicePhotos} alt="버스 송장 사진" emptyText="아직 버스 송장 사진이 없습니다." />
       </section>
 
       <section className="space-y-3">

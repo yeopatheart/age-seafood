@@ -3,29 +3,13 @@
 import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { addPhotos } from "@/app/deliveries/actions";
+import { compressImage } from "@/lib/compress-image";
 import type { Database } from "@/lib/types/database";
 
 type PhotoType = Database["public"]["Tables"]["label_photos"]["Row"]["photo_type"];
 
-// 업로드 전 브라우저에서 미리 축소·압축한다 — 휴대폰 카메라 원본(수 MB)을 그대로 올리면
-// 터미널 현장 같은 약한 네트워크에서 특히 느리다. 실패하면 원본을 그대로 쓴다.
-async function compressImage(file: File, maxDimension = 1600, quality = 0.75): Promise<File | Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
-  const width = Math.round(bitmap.width * scale);
-  const height = Math.round(bitmap.height * scale);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return file;
-  ctx.drawImage(bitmap, 0, 0, width, height);
-
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
-  return blob ?? file;
-}
-
+// 라벨 사진 전용. 상차 직전 휴대폰 기본 카메라로 미리 찍어두는 경우가 많아, 카메라를 강제로
+// 열지 않고 갤러리에서 이미 찍어둔 사진을 한 번에 여러 장 고를 수 있게 한다.
 export function PhotoCaptureButton({
   deliveryId,
   photoType,
@@ -81,10 +65,6 @@ export function PhotoCaptureButton({
         ref={inputRef}
         type="file"
         accept="image/*"
-        // 버스 송장은 그 자리에서 바로 한 장 찍어야 하니 카메라를 강제로 연다.
-        // 라벨 사진은 상차 직전에 미리 찍어두는 경우가 많아, 카메라를 강제하지 않고
-        // 갤러리에서 이미 찍어둔 사진을 한 번에 여러 장 고를 수 있게 한다.
-        capture={photoType === "invoice" ? "environment" : undefined}
         multiple={multiple}
         onChange={handleChange}
         className="hidden"

@@ -8,12 +8,14 @@ type Profile = {
   created_at: string;
 };
 
-// 트립은 터미널명 + 날짜만으로 만든다. 버스회사·차량번호·수량 같은 송장 정보는
-// 텍스트로 입력하지 않고 사진(label_photos, photo_type='invoice')으로 남긴다.
+// 트립은 터미널명 + 날짜만으로 만든다. 버스회사·차량번호 같은 송장 정보는 텍스트로 입력하지
+// 않고 사진(label_photos, photo_type='invoice')으로 남긴다. invoice_box_count만 예외 —
+// AI가 송장 사진에서 읽어 제안한 값을 사람이 확인/수정해서 저장한다.
 type BusTrip = {
   id: string;
   trip_date: string;
   terminal_name: string;
+  invoice_box_count: number | null;
   created_by: string | null;
   created_at: string;
 };
@@ -46,6 +48,7 @@ type TripReviewStatus = {
   invoice_photo_count: number;
   latest_note: string | null;
   latest_reviewed_at: string | null;
+  invoice_box_count: number | null;
 };
 
 type TableDef<Row, Insert, Update = Partial<Insert>> = {
@@ -64,6 +67,7 @@ export type Database = {
         Pick<BusTrip, "trip_date" | "terminal_name" | "created_by"> & {
           id?: string;
           created_at?: string;
+          invoice_box_count?: number | null;
         }
       >;
       label_photos: TableDef<

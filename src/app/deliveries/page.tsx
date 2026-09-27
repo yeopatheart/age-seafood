@@ -4,6 +4,7 @@ import { DeliveryForm } from "@/components/delivery-form";
 import { DatePicker } from "@/components/date-picker";
 import { PageHero } from "@/components/ui/page-hero";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
+import { DeliveryCountSummary } from "@/components/delivery-count-summary";
 import { recentUnique } from "@/lib/recent-unique";
 
 function todayKST() {
@@ -52,8 +53,11 @@ export default async function DeliveriesPage({
           >
             <div className="flex-1">
               <p className="text-lg font-bold">{delivery.terminal_name}</p>
-              <p className="text-base text-zinc-700">라벨 사진 {delivery.label_photo_count}장</p>
-              <p className="text-base text-zinc-700">버스 송장 사진 {delivery.invoice_photo_count}장</p>
+              <DeliveryCountSummary
+                labelPhotoCount={delivery.label_photo_count}
+                invoicePhotoCount={delivery.invoice_photo_count}
+                invoiceBoxCount={delivery.invoice_box_count}
+              />
             </div>
             <ReviewStatusBadge reviewed={delivery.latest_reviewed_at !== null} />
           </Link>
