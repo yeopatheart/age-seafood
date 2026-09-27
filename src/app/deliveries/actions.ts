@@ -106,6 +106,52 @@ export async function addPhotos(
   revalidatePath(`/deliveries/${deliveryId}`);
 }
 
+// 라벨 사진 일괄 업로드 화면에서 확정한 그룹들을 한 번에 커밋한다. 그룹마다 (날짜, 터미널명)으로
+// 기존 배송을 찾아 재사용하거나 새로 만들고, 그 배송에 사진들을 batch insert한다.
+export async function commitLabelPhotoGroups(
+  tripDate: string,
+  groups: { terminalName: string; storagePaths: string[] }[],
+) {
+  const supabase = await createClient();
+  const userId = await requireUserId(supabase);
+
+  for (const group of groups) {
+    const terminalName = group.terminalName.trim();
+    if (!terminalName || group.storagePaths.length === 0) continue;
+
+    const { data: existing } = await supabase
+      .from("bus_trips")
+      .select("id")
+      .eq("trip_date", tripDate)
+      .eq("terminal_name", terminalName)
+      .maybeSingle();
+
+    let deliveryId = existing?.id;
+    if (!deliveryId) {
+      const { data: created, error: createError } = await supabase
+        .from("bus_trips")
+        .insert({ trip_date: tripDate, terminal_name: terminalName, created_by: userId })
+        .select("id")
+        .single();
+      if (createError) throw new Error(createError.message);
+      deliveryId = created.id;
+    }
+
+    const { error: insertError } = await supabase.from("label_photos").insert(
+      group.storagePaths.map((storagePath) => ({
+        bus_trip_id: deliveryId,
+        storage_path: storagePath,
+        photo_type: "label" as const,
+        taken_by: userId,
+      })),
+    );
+    if (insertError) throw new Error(insertError.message);
+  }
+
+  revalidatePath("/deliveries");
+  revalidatePath("/history");
+}
+
 export async function submitReview(deliveryId: string, formData: FormData) {
   const supabase = await createClient();
   const userId = await requireUserId(supabase);

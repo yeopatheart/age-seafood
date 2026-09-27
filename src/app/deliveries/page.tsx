@@ -5,6 +5,7 @@ import { DatePicker } from "@/components/date-picker";
 import { PageHero } from "@/components/ui/page-hero";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
 import { DeliveryCountSummary } from "@/components/delivery-count-summary";
+import { Button } from "@/components/ui/button";
 import { recentUnique } from "@/lib/recent-unique";
 
 function todayKST() {
@@ -39,7 +40,18 @@ export default async function DeliveriesPage({
         <DatePicker date={tripDate} dark />
       </PageHero>
 
-      <DeliveryForm date={tripDate} terminalOptions={terminalOptions} />
+      <Link href="/deliveries/import" className="block">
+        <Button className="w-full">📷 라벨 사진 일괄 업로드 (터미널 자동 분류)</Button>
+      </Link>
+
+      <details>
+        <summary className="cursor-pointer text-lg font-medium text-zinc-700">
+          또는 터미널을 직접 지정해서 시작
+        </summary>
+        <div className="mt-3">
+          <DeliveryForm date={tripDate} terminalOptions={terminalOptions} />
+        </div>
+      </details>
 
       <div className="space-y-2">
         {(deliveries ?? []).length === 0 && (
