@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { readDisplayName } from "@/lib/user-display-name";
@@ -19,7 +20,7 @@ export async function NavBar() {
   return (
     <>
       <header className="flex items-center justify-between gap-2 bg-white px-4 py-3.5">
-        <span className="text-lg font-extrabold tracking-tight text-zinc-900">age-seafood</span>
+        <Image src="/logo-navy.png" alt="통영아재수산" width={36} height={36} priority />
         <div className="flex items-center gap-1">
           <Link
             href="/settings"
