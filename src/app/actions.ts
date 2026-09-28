@@ -95,23 +95,6 @@ export async function commitLabelPhotoGroups(
   revalidateAll();
 }
 
-// 사진확인 탭에서 잘못 분류된 라벨 사진 한 장을 다른 터미널 그룹으로 옮긴다. 대상 그룹이
-// 없으면(예: "새 그룹으로 분리") find-or-create로 새로 만든다.
-export async function moveLabelPhoto(photoId: string, tripDate: string, targetTerminalName: string) {
-  const terminalName = targetTerminalName.trim();
-  if (!terminalName) throw new Error("터미널명을 입력해주세요.");
-
-  const supabase = await createClient();
-  const userId = await requireUserId(supabase);
-
-  const deliveryId = await findOrCreateTrip(supabase, userId, tripDate, terminalName);
-
-  const { error } = await supabase.from("label_photos").update({ bus_trip_id: deliveryId }).eq("id", photoId);
-  if (error) throw new Error(error.message);
-
-  revalidateAll();
-}
-
 // 그룹(배송)의 터미널명을 고친다. 같은 이름의 다른 그룹과 자동으로 합쳐지지는 않는다 — 정말
 // 합치려면 사진을 개별적으로 이동한다(알려진 한계).
 export async function renameGroup(deliveryId: string, newName: string) {
