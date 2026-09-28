@@ -9,7 +9,16 @@ type Photo = { id: string; url: string; companyName?: string | null };
 // 모양은 사진 높이의 절반도 안 차지해서 사진이 작아 보이는 낭비였다.
 const CHIP_CLASS = "flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-zinc-100 text-zinc-600";
 
-// 업체명이 없는 사진(아직 인식 못 함)은 정렬 기준이 없으니 뒤로 보낸다.
+// "박영희 2"처럼 끝에 붙은 번호를 분리한다 — 문자열로 그냥 비교하면 "1" < "10" < "2" 순으로
+// 잘못 정렬된다(사전식 비교라 숫자 크기를 모른다). 번호는 숫자로 따로 비교해야 한다.
+function splitTrailingNumber(name: string): { base: string; number: number | null } {
+  const match = name.match(/^(.*?)\s*([0-9]+)$/);
+  if (match) return { base: match[1].trim(), number: Number(match[2]) };
+  return { base: name, number: null };
+}
+
+// 업체명이 없는 사진(아직 인식 못 함)은 정렬 기준이 없으니 뒤로 보낸다. 같은 이름이면
+// 번호가 오름차순(1, 2, 3...)이 되도록 숫자로 비교한다.
 function sortByCompanyName(photos: Photo[]): Photo[] {
   return [...photos].sort((a, b) => {
     const nameA = a.companyName?.trim();
@@ -17,7 +26,15 @@ function sortByCompanyName(photos: Photo[]): Photo[] {
     if (!nameA && !nameB) return 0;
     if (!nameA) return 1;
     if (!nameB) return -1;
-    return nameA.localeCompare(nameB, "ko");
+
+    const pa = splitTrailingNumber(nameA);
+    const pb = splitTrailingNumber(nameB);
+    const baseCompare = pa.base.localeCompare(pb.base, "ko");
+    if (baseCompare !== 0) return baseCompare;
+    if (pa.number === null && pb.number === null) return 0;
+    if (pa.number === null) return -1;
+    if (pb.number === null) return 1;
+    return pa.number - pb.number;
   });
 }
 

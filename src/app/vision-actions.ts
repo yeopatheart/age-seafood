@@ -2,6 +2,7 @@
 
 import sharp from "sharp";
 import { getAnthropicClient } from "@/lib/anthropic-client";
+import { splitTrailingNumber } from "@/lib/company-name";
 
 // 클라이언트가 이미 AI 인식용으로 축소해서 보내므로(capture-screen.tsx), 여기서는 그 값을
 // 다시 깎지 않도록 Claude 표준 모델의 실질 해상도 한계(장변 약 1568px, 그 이상은 인식 품질에
@@ -21,6 +22,17 @@ async function bufferFromFormData(formData: FormData): Promise<Buffer | null> {
 
 function knownTerminalsFromFormData(formData: FormData): string[] {
   const raw = formData.get("knownTerminals");
+  if (typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function knownCompanyNamesFromFormData(formData: FormData): string[] {
+  const raw = formData.get("knownCompanyNames");
   if (typeof raw !== "string") return [];
   try {
     const parsed = JSON.parse(raw);
@@ -58,6 +70,45 @@ function normalizeTerminalName(raw: string, knownTerminals: string[]): string {
   return raw;
 }
 
+// 두 문자열이 몇 글자나 다른지(편집 거리) 계산한다 — 손글씨 한두 글자를 다르게 읽어도
+// 같은 사람으로 볼 수 있는지 판단하는 데 쓴다.
+function levenshtein(a: string, b: string): number {
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const dp: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
+  for (let i = 0; i < rows; i++) dp[i][0] = i;
+  for (let j = 0; j < cols; j++) dp[0][j] = j;
+  for (let i = 1; i < rows; i++) {
+    for (let j = 1; j < cols; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+// 같은 담당자가 계속 같은 손글씨체로 쓰기 때문에, 이미 등록된 고객명 목록과 한두 글자만
+// 다르면 같은 사람으로 보고 표기를 통일한다(터미널명 정규화와 같은 발상). 이름이 짧을수록
+// 오독 한 글자의 비중이 크므로 엄격하게, 길수록 조금 더 관대하게 허용한다.
+function normalizeCompanyName(raw: string, knownCompanyNames: string[]): string {
+  const { base, suffix } = splitTrailingNumber(raw);
+  if (!base) return raw;
+
+  let bestMatch: string | null = null;
+  let bestDistance = Infinity;
+  for (const known of knownCompanyNames) {
+    const distance = levenshtein(base, known);
+    const threshold = base.length <= 2 ? 0 : base.length <= 4 ? 1 : 2;
+    if (distance <= threshold && distance < bestDistance) {
+      bestDistance = distance;
+      bestMatch = known;
+    }
+  }
+  return (bestMatch ?? base) + suffix;
+}
+
 export type LabelPhotoInfo = {
   terminalName: string | null;
   companyName: string | null;
@@ -74,11 +125,13 @@ export async function suggestLabelInfo(formData: FormData): Promise<LabelPhotoIn
   const buffer = await bufferFromFormData(formData);
   if (!buffer) return empty;
   const knownTerminals = knownTerminalsFromFormData(formData);
+  const knownCompanyNames = knownCompanyNamesFromFormData(formData);
   const base64 = await resizeForVision(buffer);
 
   try {
     const anthropic = getAnthropicClient();
     const knownList = knownTerminals.length > 0 ? knownTerminals.join(", ") : "(없음)";
+    const knownCompanyList = knownCompanyNames.length > 0 ? knownCompanyNames.join(", ") : "(없음)";
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
       max_tokens: 250,
@@ -117,6 +170,8 @@ export async function suggestLabelInfo(formData: FormData): Promise<LabelPhotoIn
 
 (2) 고객명 — 보통 "배송지역"과 "연락처" 사이, "고객명"이라고 인쇄된 항목 옆에 손글씨로 적혀 있습니다. 라벨 하단에 도장이나 인쇄로 찍힌 발송업체 상호(예: "OO수산")는 고객명이 아니니 혼동하지 마세요. 고객명 바로 아래나 옆에 동그라미 친 숫자 등 별도의 숫자가 적혀 있으면, 그 숫자도 고객명 뒤에 띄어쓰기로 붙여서 함께 보고하세요(예: "홍길동 2").
 
+이미 등록된 고객명 목록(같은 담당자가 항상 비슷한 글씨체로 쓰므로 참고하세요): ${knownCompanyList}. 손글씨가 이 목록의 이름 중 하나와 한두 글자만 다르게 보이면(자음·모음을 헷갈려 다르게 읽을 수 있는 정도) 그 목록의 이름으로 답하세요. 목록에 없는 새 이름이면 라벨에 적힌 대로 답하세요.
+
 고객명은 항상 최선을 다해 읽어서 보고하세요 — 손글씨가 흐릿하거나 흘려 써서 완전히 확신이 서지 않아도, 가장 비슷하게 보이는 글자로 추측해서 답하세요. 빈 값보다 오차가 있는 값이 낫습니다. "고객명" 항목 자체가 라벨에 아예 없을 때만 null로 보고하세요.
 
 두 항목은 서로 독립적으로 판단하세요 — 하나를 알아보기 어렵다고 해서 나머지까지 null로 보고하지 마세요.`,
@@ -131,9 +186,10 @@ export async function suggestLabelInfo(formData: FormData): Promise<LabelPhotoIn
 
     const input = toolUse.input as { terminal_name: string | null; company_name: string | null };
     const name = input.terminal_name?.trim();
+    const companyName = input.company_name?.trim();
     return {
       terminalName: name ? normalizeTerminalName(name, knownTerminals) : null,
-      companyName: input.company_name?.trim() || null,
+      companyName: companyName ? normalizeCompanyName(companyName, knownCompanyNames) : null,
     };
   } catch {
     return empty;

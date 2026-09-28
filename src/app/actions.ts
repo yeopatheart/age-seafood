@@ -5,6 +5,8 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createLimiter } from "@/lib/concurrency-limit";
 import { suggestLabelInfo, suggestBusInvoiceInfo } from "@/app/vision-actions";
+import { splitTrailingNumber } from "@/lib/company-name";
+import { recentUnique } from "@/lib/recent-unique";
 import type { Database } from "@/lib/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -121,6 +123,21 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
     const bgSupabase = await createClient();
     const limit = createLimiter(4);
 
+    // 같은 담당자가 항상 비슷한 글씨체로 쓰므로, 최근에 이미 등록된 고객명 목록을 참고 자료로
+    // 준다 — 터미널명에 쓰던 것과 같은 발상. 번호(예: "박영희 2")는 빼고 이름만 중복 제거한다.
+    const { data: recentCompanyRows } = await bgSupabase
+      .from("label_photos")
+      .select("company_name")
+      .not("company_name", "is", null)
+      .order("taken_at", { ascending: false })
+      .limit(300);
+    const knownCompanyNames = recentUnique(
+      (recentCompanyRows ?? [])
+        .map((r) => (r.company_name ? splitTrailingNumber(r.company_name).base : ""))
+        .filter((name) => name.length > 0),
+      100,
+    );
+
     // AI 호출(느림)은 동시에 여러 개 진행하되, 그룹 생성은 한 번에 하나씩만 한다 — 같은 배치에
     // 같은 터미널로 갈 사진이 여럿이면, find-or-create가 동시에 겹쳐서 같은 이름의 그룹이
     // 두 개 생길 수 있기 때문이다(여러 사람이 동시에 올릴 때의 경쟁과 같은 문제).
@@ -134,6 +151,7 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
           const visionFormData = new FormData();
           visionFormData.set("image", image, "photo.jpg");
           visionFormData.set("knownTerminals", JSON.stringify(knownTerminals));
+          visionFormData.set("knownCompanyNames", JSON.stringify(knownCompanyNames));
 
           const info = await suggestLabelInfo(visionFormData);
           return { photoId, ...info };
