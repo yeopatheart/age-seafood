@@ -174,7 +174,7 @@ export function ReviewScreen({
               <input
                 defaultValue={group.terminalName}
                 onBlur={(e) => handleRename(group.id, e.target.value, group.terminalName)}
-                className="h-12 w-24 min-w-0 shrink rounded-xl bg-zinc-100 px-3 text-center text-base font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-12 w-28 min-w-0 shrink rounded-xl bg-zinc-100 px-3 text-center text-base font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 defaultValue={formatDepartureTime(group.departureTime)}
