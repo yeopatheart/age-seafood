@@ -8,6 +8,8 @@ type Photo = { id: string; url: string; companyName?: string | null };
 
 export const NEW_GROUP = "__new__";
 
+const SLIDE_TRANSITION_MS = 250;
+
 // 80px 썸네일 안에서 업체명이 한 줄에 들어가도록 글자 수에 맞춰 글자 크기를 줄인다. 정확한
 // 텍스트 폭 측정 대신 글자 수 기반 추정치를 쓰고, 그래도 넘치면 CSS truncate가 마지막 안전망이다.
 function fitFontSize(text: string): number {
@@ -32,7 +34,12 @@ export function PhotoStrip({
 }) {
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
-  const touchStartX = useRef<number | null>(null);
+  // 이전/현재/다음 3장을 나란히 두고 손가락을 따라 트랙을 밀어서, 스와이프가 끊기지 않고
+  // 자연스럽게 넘어가도록 한다 — 단순 터치 시작/끝 거리 비교만으로는 사진이 뚝뚝 끊겨 바뀌었다.
+  const [dragFraction, setDragFraction] = useState(0); // -1(다음으로 꽉 밀림) ~ 1(이전으로 꽉 밀림)
+  const [isAnimating, setIsAnimating] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const trackWidthRef = useRef(1);
 
   if (photos.length === 0) return null;
 
@@ -41,25 +48,51 @@ export function PhotoStrip({
   function closeZoom() {
     setZoomedIndex(null);
     setMoveMenuOpen(false);
+    setDragFraction(0);
+    setIsAnimating(false);
   }
 
-  function goTo(index: number) {
-    setMoveMenuOpen(false);
-    setZoomedIndex(index);
+  // direction: -1이면 이전 사진으로, 1이면 다음 사진으로, 0이면 원래 자리로 되돌아간다(스냅백).
+  function settle(direction: -1 | 0 | 1) {
+    if (zoomedIndex === null) return;
+    setIsAnimating(true);
+    if (direction === 0) {
+      setDragFraction(0);
+      window.setTimeout(() => setIsAnimating(false), SLIDE_TRANSITION_MS);
+      return;
+    }
+    setDragFraction(direction === 1 ? -1 : 1);
+    window.setTimeout(() => {
+      setMoveMenuOpen(false);
+      setZoomedIndex((current) => (current === null ? current : current + direction));
+      setDragFraction(0);
+      setIsAnimating(false);
+    }, SLIDE_TRANSITION_MS);
   }
 
   function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
+    if (isAnimating || zoomedIndex === null) return;
+    touchStartXRef.current = e.touches[0].clientX;
+    trackWidthRef.current = e.currentTarget.clientWidth || 1;
   }
 
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || zoomedIndex === null) return;
-    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartXRef.current === null || zoomedIndex === null) return;
+    let delta = e.touches[0].clientX - touchStartXRef.current;
+    // 첫/마지막 사진에서는 더 넘어갈 수 없다는 걸 알 수 있도록 저항을 준다(고무줄처럼 살짝만 끌림).
+    if (zoomedIndex === 0 && delta > 0) delta *= 0.35;
+    if (zoomedIndex === photos.length - 1 && delta < 0) delta *= 0.35;
+    setDragFraction(delta / trackWidthRef.current);
+  }
 
-    const SWIPE_THRESHOLD = 50;
-    if (deltaX > SWIPE_THRESHOLD && zoomedIndex > 0) goTo(zoomedIndex - 1);
-    else if (deltaX < -SWIPE_THRESHOLD && zoomedIndex < photos.length - 1) goTo(zoomedIndex + 1);
+  function handleTouchEnd() {
+    if (touchStartXRef.current === null || zoomedIndex === null) return;
+    touchStartXRef.current = null;
+
+    const THRESHOLD = 0.2;
+    if (dragFraction < -THRESHOLD && zoomedIndex < photos.length - 1) settle(1);
+    else if (dragFraction > THRESHOLD && zoomedIndex > 0) settle(-1);
+    else settle(0);
   }
 
   return (
@@ -104,39 +137,52 @@ export function PhotoStrip({
             <X className="h-6 w-6" strokeWidth={2.5} />
           </button>
 
-          <div
-            className="relative flex w-full flex-1 items-center justify-center"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
+          <div className="relative w-full flex-1 overflow-hidden">
+            <div
+              className="flex h-full w-full"
+              style={{
+                transform: `translateX(${(-1 + dragFraction) * 100}%)`,
+                transition: isAnimating ? `transform ${SLIDE_TRANSITION_MS}ms ease-out` : "none",
+              }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {[zoomedIndex - 1, zoomedIndex, zoomedIndex + 1].map((idx) => (
+                <div key={idx} className="flex h-full w-full shrink-0 items-center justify-center">
+                  {photos[idx] && (
+                    // eslint-disable-next-line @next/next/no-img-element -- 서명 URL이라 next/image 대상이 아님
+                    <img
+                      src={photos[idx].url}
+                      alt="확대된 사진"
+                      className="max-h-[70vh] max-w-full rounded-2xl object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
             {zoomedIndex > 0 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  goTo(zoomedIndex - 1);
+                  settle(-1);
                 }}
-                className="absolute left-1 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
+                className="absolute left-1 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
                 aria-label="이전 사진"
               >
                 <ChevronLeft className="h-7 w-7" strokeWidth={2.5} />
               </button>
             )}
 
-            {/* eslint-disable-next-line @next/next/no-img-element -- 서명 URL이라 next/image 대상이 아님 */}
-            <img
-              src={zoomed.url}
-              alt="확대된 사진"
-              className="max-h-[70vh] max-w-full rounded-2xl object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-
             {zoomedIndex < photos.length - 1 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  goTo(zoomedIndex + 1);
+                  settle(1);
                 }}
-                className="absolute right-1 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
+                className="absolute right-1 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
                 aria-label="다음 사진"
               >
                 <ChevronRight className="h-7 w-7" strokeWidth={2.5} />
@@ -159,7 +205,7 @@ export function PhotoStrip({
               className="flex h-11 items-center gap-1.5 rounded-full bg-white/10 px-5 text-base font-medium text-white transition-colors active:bg-white/20"
             >
               <ArrowRightLeft className="h-4 w-4" strokeWidth={2.25} />
-              다른 그룹으로 이동
+              다른 터미널로 이동
             </button>
           )}
 
@@ -175,7 +221,7 @@ export function PhotoStrip({
                 className="max-h-[70vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <p className="px-3 py-2 text-base font-semibold text-zinc-400">다른 그룹으로 이동</p>
+                <p className="px-3 py-2 text-base font-semibold text-zinc-400">다른 터미널로 이동</p>
                 {moveOptions.map((name) => (
                   <button
                     key={name}
@@ -195,7 +241,7 @@ export function PhotoStrip({
                   }}
                   className="flex h-12 w-full items-center rounded-2xl px-3 text-lg font-medium text-blue-600 active:bg-blue-50"
                 >
-                  새 그룹으로 분리
+                  새 터미널 만들기
                 </button>
               </div>
             </div>
