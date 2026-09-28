@@ -17,7 +17,7 @@ export default async function CapturePage() {
   const knownTerminals = recentUnique((recentDeliveries ?? []).map((t) => t.terminal_name), 20);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-4 pt-6">
+    <main className="mx-auto flex h-full max-w-3xl flex-col p-4 pt-6">
       <CaptureScreen knownTerminals={knownTerminals} defaultDate={todayKST()} />
     </main>
   );
