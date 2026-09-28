@@ -18,10 +18,6 @@ export default async function CapturePage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4 pt-6">
-      <p className="text-lg font-medium text-zinc-500">
-        택배송장을 연속으로 찍고 한 번에 업로드하면, AI가 택배송장에 적힌 터미널명을 읽어 자동으로
-        분류합니다. 버스송장을 찍어 올리면 터미널·출발시간·박스 수량도 자동으로 매칭돼요.
-      </p>
       <CaptureScreen knownTerminals={knownTerminals} defaultDate={todayKST()} />
     </main>
   );

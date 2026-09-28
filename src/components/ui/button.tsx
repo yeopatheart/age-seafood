@@ -1,7 +1,8 @@
 import type { ButtonHTMLAttributes } from "react";
 
+// primary는 로고(public/logo-navy.png)의 남색·크림색을 그대로 쓴다 — 앱 전체의 기본 브랜드 색.
 const VARIANT_CLASSES = {
-  primary: "bg-blue-600 text-white active:bg-blue-700 disabled:opacity-40",
+  primary: "bg-[#10223d] text-[#fffdf0] active:bg-[#0c1a30] disabled:opacity-40",
   secondary: "bg-zinc-100 text-zinc-900 active:bg-zinc-200 disabled:opacity-40",
   accent: "bg-amber-500 text-white active:bg-amber-600 disabled:opacity-40",
   danger: "bg-rose-50 text-rose-600 active:bg-rose-100 disabled:opacity-40",

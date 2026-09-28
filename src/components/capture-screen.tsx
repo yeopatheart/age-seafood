@@ -167,8 +167,9 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
   return (
     <div className="space-y-4">
       <Button
+        variant="accent"
         onClick={() => setCameraOpen(true)}
-        className="flex min-h-24 w-full items-center justify-center gap-2 text-2xl shadow-[0_12px_24px_-8px_rgba(37,99,235,0.45)]"
+        className="flex min-h-24 w-full items-center justify-center gap-2 text-2xl shadow-[0_12px_24px_-8px_rgba(217,119,6,0.45)]"
       >
         <Package className="h-7 w-7" strokeWidth={2.25} />
         택배송장 올리기
