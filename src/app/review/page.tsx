@@ -16,8 +16,7 @@ export default async function ReviewPage() {
     .from("trip_review_status")
     .select("*")
     .eq("trip_date", tripDate)
-    .is("latest_reviewed_at", null)
-    .order("terminal_name");
+    .is("latest_reviewed_at", null);
 
   const deliveryIds = (deliveries ?? []).map((d) => d.trip_id);
   const { data: photos } =
@@ -50,13 +49,15 @@ export default async function ReviewPage() {
         })),
     }))
     // 분류 대기 중인 사진만 있던(또는 전부 다른 그룹으로 옮겨져 텅 빈) 그룹은 숨긴다.
-    .filter((g) => g.photos.length > 0);
+    .filter((g) => g.photos.length > 0)
+    // DB 기본 정렬(collation)에 기대지 않고 한글 가나다순을 명시적으로 보장한다.
+    .sort((a, b) => a.terminalName.localeCompare(b.terminalName, "ko"));
 
   const totalLabelPhotos = (photos ?? []).filter((p) => p.photo_type === "label").length;
   const terminalNames = recentUnique(groups.map((g) => g.terminalName), 50);
 
   return (
-    <main className="mx-auto max-w-3xl space-y-5 p-4 pb-32">
+    <main className="mx-auto max-w-3xl space-y-5 p-4 pb-16">
       <ReviewScreen
         tripDate={tripDate}
         groups={groups}

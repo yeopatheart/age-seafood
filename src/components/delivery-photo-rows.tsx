@@ -9,6 +9,18 @@ type Photo = { id: string; url: string; companyName?: string | null };
 // 모양은 사진 높이의 절반도 안 차지해서 사진이 작아 보이는 낭비였다.
 const CHIP_CLASS = "flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl bg-zinc-100 text-zinc-600";
 
+// 업체명이 없는 사진(아직 인식 못 함)은 정렬 기준이 없으니 뒤로 보낸다.
+function sortByCompanyName(photos: Photo[]): Photo[] {
+  return [...photos].sort((a, b) => {
+    const nameA = a.companyName?.trim();
+    const nameB = b.companyName?.trim();
+    if (!nameA && !nameB) return 0;
+    if (!nameA) return 1;
+    if (!nameB) return -1;
+    return nameA.localeCompare(nameB, "ko");
+  });
+}
+
 export function DeliveryPhotoRows({
   labelPhotos,
   invoicePhotos,
@@ -57,7 +69,7 @@ export function DeliveryPhotoRows({
           <span className="text-lg font-bold tabular-nums text-zinc-900">{labelPhotos.length}장</span>
         </span>
         <div className="min-w-0 flex-1">
-          <PhotoStrip photos={labelPhotos} moveOptions={moveOptions} onMove={onMoveLabelPhoto} />
+          <PhotoStrip photos={sortByCompanyName(labelPhotos)} moveOptions={moveOptions} onMove={onMoveLabelPhoto} />
         </div>
       </div>
     </div>

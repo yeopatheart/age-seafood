@@ -202,7 +202,7 @@ export function ReviewScreen({
 
       {error && <p className="text-lg font-medium text-rose-600">{error}</p>}
 
-      <div className="fixed inset-x-0 bottom-16 z-10 border-t border-zinc-100 bg-white/95 p-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-20 z-10 border-t border-zinc-100 bg-white/95 p-3 backdrop-blur">
         <Button onClick={handleConfirm} disabled={checked.size === 0 || confirming} className="w-full">
           {confirming ? "확정 중..." : `확정하기 (${checked.size})`}
         </Button>

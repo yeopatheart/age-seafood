@@ -15,11 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "age-seafood",
+  title: "통영아재수산",
   description: "통영 수산물 배송 촬영·검수",
   icons: { apple: "/icons/apple-touch" },
-  // 홈 화면에 추가했을 때 브라우저 주소창 없이 앱처럼 보이게 한다 (iOS)
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "age-seafood" },
+  // 홈 화면에 추가했을 때 브라우저 주소창 없이 앱처럼 보이게 한다 (iOS). title이 곧 iOS가
+  // 홈 화면 아이콘 밑에 보여주는 이름이다 — manifest의 name/short_name과 별개로 이걸 본다.
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "통영아재수산" },
   // 구버전 iOS는 표준 mobile-web-app-capable 대신 이 태그를 본다 — 둘 다 넣어 호환성을 넓힌다
   other: { "apple-mobile-web-app-capable": "yes" },
 };
@@ -47,7 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <NavBar />
-        <div className="flex-1 bg-zinc-100 pb-24">{children}</div>
+        <div className="flex-1 bg-zinc-100 pb-28">{children}</div>
       </body>
     </html>
   );

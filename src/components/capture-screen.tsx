@@ -10,11 +10,11 @@ import { commitLabelPhotosAsync, uploadBusInvoicesAsync } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { ContinuousCamera } from "@/components/continuous-camera";
 
-// AI는 글자만 읽으면 되므로 사람이 확대해서 보는 저장용 사진보다 훨씬 작게 보내도 된다.
-// 원본에서 바로 이 크기로 축소하면(저장용을 다시 축소하는 이중 압축이 아니라) 전송량이
-// 줄면서도 화질은 오히려 덜 손실된다.
-const VISION_MAX_DIMENSION = 1280;
-const VISION_QUALITY = 0.7;
+// AI 분류는 이제 업로드를 막지 않고 백그라운드(after)에서 도니까, 화질을 더 올려도 체감
+// 업로드 속도에는 영향이 없다 — 손글씨 고객명 인식률을 높이는 쪽을 우선한다. Claude
+// 표준 모델의 실질 해상도 한계(장변 약 1568px)에 가깝게 잡았다.
+const VISION_MAX_DIMENSION = 1536;
+const VISION_QUALITY = 0.85;
 
 type UploadResult = { storagePath: string; toVision: File | Blob };
 

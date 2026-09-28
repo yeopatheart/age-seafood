@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "age-seafood",
-    short_name: "age-seafood",
+    name: "통영아재수산",
+    short_name: "통영아재수산",
     description: "통영 수산물 배송 촬영·검수",
     start_url: "/",
     display: "standalone",

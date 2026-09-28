@@ -24,10 +24,14 @@ export default async function HistoryPage({
     .from("trip_review_status")
     .select("*")
     .eq("trip_date", tripDate)
-    .not("latest_reviewed_at", "is", null)
-    .order("terminal_name");
+    .not("latest_reviewed_at", "is", null);
 
-  const deliveryIds = (deliveries ?? []).map((d) => d.trip_id);
+  // DB 기본 정렬(collation)에 기대지 않고 한글 가나다순을 명시적으로 보장한다.
+  const sortedDeliveries = [...(deliveries ?? [])].sort((a, b) =>
+    a.terminal_name.localeCompare(b.terminal_name, "ko"),
+  );
+
+  const deliveryIds = sortedDeliveries.map((d) => d.trip_id);
   const { data: photos } =
     deliveryIds.length > 0
       ? await supabase
@@ -42,10 +46,10 @@ export default async function HistoryPage({
       <DatePicker date={tripDate} />
 
       <div className="space-y-4">
-        {(deliveries ?? []).length === 0 && (
-          <Card className="text-center text-lg text-zinc-500">조건에 맞는 기록이 없습니다.</Card>
+        {sortedDeliveries.length === 0 && (
+          <Card className="text-center text-lg text-zinc-500">해당 날짜에 기록이 없습니다.</Card>
         )}
-        {(deliveries ?? []).map((delivery) => {
+        {sortedDeliveries.map((delivery) => {
           // 확정된 배송은 실무상 분류 대기 중인 사진이 남아있을 일이 없지만, 방어적으로 같은
           // 필터를 적용해서 혹시 모를 pending 사진이 섞여 보이지 않게 한다.
           const deliveryPhotos = (photos ?? [])
