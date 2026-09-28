@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ReviewStatusBadge } from "@/components/review-status-badge";
-import { DeliveryCountSummary } from "@/components/delivery-count-summary";
-import { DeliveryPhotos } from "@/components/delivery-photos";
+import { DeliveryPhotoRows } from "@/components/delivery-photo-rows";
 import { DatePicker } from "@/components/date-picker";
 import { Card } from "@/components/ui/card";
 import { formatDepartureTime } from "@/lib/format-departure-time";
@@ -70,15 +69,10 @@ export default async function HistoryPage({
                 <ReviewStatusBadge reviewed={delivery.latest_reviewed_at !== null} />
               </div>
 
-              <DeliveryCountSummary
-                labelPhotoCount={delivery.label_photo_count}
-                invoicePhotoCount={delivery.invoice_photo_count}
-                invoiceBoxCount={delivery.invoice_box_count}
-              />
-
-              <DeliveryPhotos
+              <DeliveryPhotoRows
                 labelPhotos={deliveryPhotos.filter((p) => p.photoType === "label")}
                 invoicePhotos={deliveryPhotos.filter((p) => p.photoType === "invoice")}
+                invoiceBoxCount={delivery.invoice_box_count}
               />
             </Card>
           );

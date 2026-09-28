@@ -41,7 +41,7 @@ export function DeleteDeliveryButton({
     <button
       onClick={handleDelete}
       disabled={pending}
-      className="flex h-11 w-28 shrink-0 items-center justify-center gap-1.5 rounded-full text-base font-semibold text-rose-500 transition-colors active:bg-rose-50 disabled:cursor-not-allowed"
+      className="flex h-11 w-24 shrink-0 items-center justify-center gap-1 rounded-full text-sm font-semibold text-rose-500 transition-colors active:bg-rose-50 disabled:cursor-not-allowed"
     >
       {pending && <Loader2 className="h-4 w-4 animate-spin" />}
       {pending ? "삭제 중..." : error ? "다시 시도" : "삭제"}
