@@ -4,6 +4,7 @@ import { DeliveryCountSummary } from "@/components/delivery-count-summary";
 import { DeliveryPhotos } from "@/components/delivery-photos";
 import { DatePicker } from "@/components/date-picker";
 import { Card } from "@/components/ui/card";
+import { formatDepartureTime } from "@/lib/format-departure-time";
 
 function todayKST() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -61,7 +62,9 @@ export default async function HistoryPage({
                 <p className="text-lg font-bold text-zinc-900">
                   {delivery.terminal_name}
                   {delivery.departure_time && (
-                    <span className="ml-1 font-medium text-zinc-500">{delivery.departure_time}</span>
+                    <span className="ml-1 font-medium text-zinc-500">
+                      {formatDepartureTime(delivery.departure_time)}
+                    </span>
                   )}
                 </p>
                 <ReviewStatusBadge reviewed={delivery.latest_reviewed_at !== null} />

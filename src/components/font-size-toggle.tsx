@@ -16,11 +16,11 @@ const STORAGE_KEY = "age-seafood-font-size";
 // <html data-font-size>에 반영해두므로, 여기서는 같은 값을 초기값으로 그대로 읽기만 한다
 // (useEffect+setState로 뒤늦게 동기화하지 않는다 — 불필요한 리렌더와 깜빡임을 피한다).
 function readInitialLevel(): Level {
-  if (typeof window === "undefined") return "large";
+  if (typeof window === "undefined") return "normal";
   try {
-    return (localStorage.getItem(STORAGE_KEY) as Level | null) ?? "large";
+    return (localStorage.getItem(STORAGE_KEY) as Level | null) ?? "normal";
   } catch {
-    return "large";
+    return "normal";
   }
 }
 

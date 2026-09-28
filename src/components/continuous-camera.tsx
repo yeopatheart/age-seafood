@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { X, Images } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProgressBar } from "@/components/ui/progress-bar";
 
 type Shot = { id: string; blob: Blob; previewUrl: string };
 
@@ -21,14 +22,23 @@ export function ContinuousCamera({
   title,
   onClose,
   onSubmit,
+  uploadProgress,
+  resultMessage,
 }: {
   title: string;
   onClose: () => void;
   onSubmit: (files: File[]) => void;
+  // 부모(촬영 탭)가 업로드 중일 때 진행 상황을 넘겨주면, 촬영 화면이 그대로 열려 있는 동안에도
+  // (업로드 후에도 계속 찍을 수 있게 닫지 않으므로) 그 위에 진행률을 보여줄 수 있다.
+  uploadProgress?: { done: number; total: number } | null;
+  // 업로드가 끝나면 실제 분류 결과(터미널명 등)를 여기 보여준다 — 촬영이든 갤러리 선택이든
+  // 결과 화면은 같다. 화면을 닫지 않아도 바로 보이도록 진행률 표시와 같은 자리에 둔다.
+  resultMessage?: { text: string; isError: boolean } | null;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [shots, setShots] = useState<Shot[]>([]);
   const [cameraError, setCameraError] = useState<string | null>(() =>
@@ -116,6 +126,30 @@ export function ContinuousCamera({
     if (files.length > 0) onSubmit(files);
   }
 
+  // 카메라로 찍은 사진과 갤러리에서 고른 사진을 한 목록에 모아뒀다가 한 번에 업로드한다.
+  function handleGalleryFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    setShots((prev) => [
+      ...prev,
+      ...files.map((file) => ({ id: crypto.randomUUID(), blob: file, previewUrl: URL.createObjectURL(file) })),
+    ]);
+  }
+
+  const statusContent = uploadProgress ? (
+    <div className="space-y-2">
+      <p className="text-base font-medium text-zinc-300">
+        업로드 중... <span className="tabular-nums">{uploadProgress.done}</span>/
+        <span className="tabular-nums">{uploadProgress.total}</span>
+      </p>
+      <ProgressBar value={uploadProgress.done} max={uploadProgress.total} />
+    </div>
+  ) : resultMessage ? (
+    <p className={`text-base font-semibold ${resultMessage.isError ? "text-rose-400" : "text-emerald-400"}`}>
+      {resultMessage.text}
+    </p>
+  ) : null;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex items-center justify-between p-4 text-white">
@@ -140,7 +174,11 @@ export function ContinuousCamera({
             onChange={handleFallbackFiles}
             className="hidden"
           />
-          <Button onClick={() => fallbackInputRef.current?.click()}>갤러리에서 선택</Button>
+          <Button onClick={() => fallbackInputRef.current?.click()} disabled={!!uploadProgress}>
+            갤러리에서 선택
+          </Button>
+
+          {statusContent && <div className="w-full max-w-xs">{statusContent}</div>}
         </div>
       ) : (
         <>
@@ -150,6 +188,8 @@ export function ContinuousCamera({
             )}
             <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
           </div>
+
+          {statusContent && <div className="bg-zinc-950 p-4">{statusContent}</div>}
 
           {shots.length > 0 && (
             <div className="flex gap-2 overflow-x-auto bg-zinc-950 p-3">
@@ -173,18 +213,39 @@ export function ContinuousCamera({
             </div>
           )}
 
-          <div className="flex items-center justify-center gap-6 bg-black p-6">
-            <button
-              onClick={capture}
-              disabled={starting}
-              className="h-20 w-20 rounded-full border-[5px] border-white bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition-transform active:scale-95 disabled:opacity-40"
-              aria-label="촬영"
-            />
+          <div className="grid grid-cols-3 items-center bg-black p-6">
+            <div className="flex justify-start">
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleGalleryFiles}
+                className="hidden"
+              />
+              <button
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={!!uploadProgress}
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white transition-colors active:bg-white/20 disabled:opacity-40"
+                aria-label="갤러리에서 사진 선택"
+              >
+                <Images className="h-6 w-6" strokeWidth={2} />
+              </button>
+            </div>
+            <div className="flex justify-center">
+              <button
+                onClick={capture}
+                disabled={starting || !!uploadProgress}
+                className="h-20 w-20 rounded-full border-[5px] border-white bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition-transform active:scale-95 disabled:opacity-40"
+                aria-label="촬영"
+              />
+            </div>
+            <div />
           </div>
 
           {shots.length > 0 && (
             <div className="p-4 pb-8">
-              <Button onClick={handleUpload} className="w-full">
+              <Button onClick={handleUpload} disabled={!!uploadProgress} className="w-full">
                 업로드 ({shots.length}장)
               </Button>
             </div>

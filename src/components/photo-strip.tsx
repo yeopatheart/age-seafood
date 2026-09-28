@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 type Photo = { id: string; url: string };
 
@@ -26,13 +27,13 @@ export function PhotoStrip({
     <>
       <div className="flex gap-2 overflow-x-auto">
         {photos.map((photo) => (
-          <button key={photo.id} onClick={() => setZoomed(photo)} className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- 서명 URL이라 next/image 대상이 아님 */}
-            <img
-              src={photo.url}
-              alt="사진"
-              className="h-16 w-16 rounded-2xl object-cover shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-transform active:scale-95"
-            />
+          <button
+            key={photo.id}
+            onClick={() => setZoomed(photo)}
+            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-transform active:scale-95"
+          >
+            {/* 서명 URL 원본(최대 1600px)을 그대로 내려받지 않도록 썸네일 크기로 다시 인코딩한다 */}
+            <Image src={photo.url} alt="사진" fill sizes="64px" className="object-cover" />
           </button>
         ))}
       </div>

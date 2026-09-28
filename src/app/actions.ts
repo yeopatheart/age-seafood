@@ -172,16 +172,6 @@ export async function uploadBusInvoice(
   revalidateAll();
 }
 
-// 버스 송장의 박스 수량은 OCR 제안값을 사람이 확인/수정한 뒤 이 액션으로 저장한다.
-export async function confirmInvoiceBoxCount(deliveryId: string, count: number) {
-  const supabase = await createClient();
-
-  const { error } = await supabase.from("bus_trips").update({ invoice_box_count: count }).eq("id", deliveryId);
-  if (error) throw new Error(error.message);
-
-  revalidateAll();
-}
-
 // 출발시간도 박스 수량과 동일하게 OCR 제안값을 사람이 확인/수정할 수 있어야 한다(손글씨 오독 위험).
 export async function updateDepartureTime(deliveryId: string, value: string) {
   const supabase = await createClient();

@@ -20,8 +20,14 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
   const [error, setError] = useState<string | null>(null);
 
   const [invoiceCameraOpen, setInvoiceCameraOpen] = useState(false);
-  const [invoiceStatus, setInvoiceStatus] = useState<string | null>(null);
+  const [invoiceUploading, setInvoiceUploading] = useState(false);
+  const [invoiceProcessedCount, setInvoiceProcessedCount] = useState(0);
+  const [invoiceTotalCount, setInvoiceTotalCount] = useState(0);
+  const [invoiceDoneMessage, setInvoiceDoneMessage] = useState<string | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
+  // 촬영이든 갤러리 선택이든 같은 onSubmit으로 들어오므로, 어느 쪽으로 골랐는지와 무관하게
+  // 분류 결과를 바로 보여준다 — "N장 업로드 완료" 대신 실제로 어느 터미널로 분류됐는지 보여준다.
   async function handleFiles(files: File[]) {
     setError(null);
     setDoneMessage(null);
@@ -62,7 +68,8 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
         storagePaths,
       }));
       await commitLabelPhotoGroups(defaultDate, payload);
-      setDoneMessage(`${files.length}장 업로드 완료 — 확인 탭에서 분류 결과를 볼 수 있어요.`);
+      const summary = payload.map((g) => `${g.terminalName} ${g.storagePaths.length}장`).join(", ");
+      setDoneMessage(`분류 완료: ${summary}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "저장에 실패했습니다.");
     } finally {
@@ -71,11 +78,14 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
   }
 
   async function handleInvoiceFiles(files: File[]) {
-    setError(null);
-    setInvoiceStatus(`버스송장 업로드 중... (0/${files.length})`);
+    setInvoiceError(null);
+    setInvoiceDoneMessage(null);
+    setInvoiceUploading(true);
+    setInvoiceProcessedCount(0);
+    setInvoiceTotalCount(files.length);
 
     const supabase = createClient();
-    let done = 0;
+    const results: string[] = [];
 
     await Promise.all(
       files.map(async (file) => {
@@ -92,16 +102,21 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
 
           const suggested = await suggestBusInvoiceInfo(storagePath, knownTerminals);
           await uploadBusInvoice(defaultDate, storagePath, suggested);
+
+          const name = suggested.terminalName?.trim() || UNRECOGNIZED;
+          const time = suggested.departureTime ? ` ${suggested.departureTime}` : "";
+          const box = suggested.boxCount !== null ? ` · 박스 ${suggested.boxCount}개` : "";
+          results.push(`${name}${time}${box}`);
         } catch {
-          setError("일부 버스송장 업로드에 실패했습니다. 다시 시도해주세요.");
+          setInvoiceError("일부 버스송장 업로드에 실패했습니다. 다시 시도해주세요.");
         } finally {
-          done += 1;
-          setInvoiceStatus(`버스송장 업로드 중... (${done}/${files.length})`);
+          setInvoiceProcessedCount((c) => c + 1);
         }
       }),
     );
 
-    setInvoiceStatus(`버스송장 ${files.length}장 업로드 완료 — 확인 탭에서 매칭 결과를 볼 수 있어요.`);
+    if (results.length > 0) setInvoiceDoneMessage(`매칭 완료: ${results.join(", ")}`);
+    setInvoiceUploading(false);
   }
 
   return (
@@ -123,18 +138,14 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
         버스송장 올리기
       </Button>
 
-      {uploading && (
-        <p className="text-lg font-medium text-zinc-500">
-          업로드·분류 중... <span className="tabular-nums">{processedCount}</span>/
-          <span className="tabular-nums">{totalCount}</span>
-        </p>
-      )}
-      {doneMessage && <p className="text-lg font-medium text-emerald-600">{doneMessage}</p>}
-      {invoiceStatus && <p className="text-lg font-medium text-zinc-500">{invoiceStatus}</p>}
-      {error && <p className="text-lg font-medium text-rose-600">{error}</p>}
-
       {cameraOpen && (
-        <ContinuousCamera title="택배송장 연속촬영" onClose={() => setCameraOpen(false)} onSubmit={handleFiles} />
+        <ContinuousCamera
+          title="택배송장 연속촬영"
+          onClose={() => setCameraOpen(false)}
+          onSubmit={handleFiles}
+          uploadProgress={uploading ? { done: processedCount, total: totalCount } : null}
+          resultMessage={!uploading && (doneMessage || error) ? { text: (doneMessage ?? error)!, isError: !!error } : null}
+        />
       )}
 
       {invoiceCameraOpen && (
@@ -142,6 +153,12 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
           title="버스송장 연속촬영"
           onClose={() => setInvoiceCameraOpen(false)}
           onSubmit={handleInvoiceFiles}
+          uploadProgress={invoiceUploading ? { done: invoiceProcessedCount, total: invoiceTotalCount } : null}
+          resultMessage={
+            !invoiceUploading && (invoiceDoneMessage || invoiceError)
+              ? { text: (invoiceDoneMessage ?? invoiceError)!, isError: !!invoiceError }
+              : null
+          }
         />
       )}
     </div>

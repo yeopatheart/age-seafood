@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Calendar } from "lucide-react";
 import { moveLabelPhoto, renameGroup, updateDepartureTime, confirmGroups } from "@/app/actions";
+import { formatDepartureTime } from "@/lib/format-departure-time";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DeleteDeliveryButton } from "@/components/delete-delivery-button";
@@ -33,8 +34,11 @@ export function ReviewScreen({
   totalLabelPhotos: number;
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const visibleGroups = groups.filter((g) => !deletedIds.has(g.id));
 
   function toggleChecked(id: string) {
     setChecked((prev) => {
@@ -54,10 +58,12 @@ export function ReviewScreen({
     }
   }
 
-  async function handleDepartureTimeChange(groupId: string, value: string, previousValue: string | null) {
-    if (value.trim() === (previousValue ?? "")) return;
+  async function handleDepartureTimeChange(groupId: string, input: HTMLInputElement, previousValue: string | null) {
+    const formatted = formatDepartureTime(input.value);
+    if (formatted === formatDepartureTime(previousValue)) return;
     try {
-      await updateDepartureTime(groupId, value);
+      await updateDepartureTime(groupId, formatted);
+      input.value = formatted;
     } catch (e) {
       setError(e instanceof Error ? e.message : "출발시간 변경에 실패했습니다.");
     }
@@ -99,15 +105,15 @@ export function ReviewScreen({
         </div>
         <p className="text-right text-base font-medium text-zinc-500">
           전체 업로드 <span className="font-bold text-zinc-900">{totalLabelPhotos}</span>장 | 터미널{" "}
-          <span className="font-bold text-zinc-900">{groups.length}</span>개
+          <span className="font-bold text-zinc-900">{visibleGroups.length}</span>개
         </p>
       </div>
 
-      {groups.length === 0 && (
+      {visibleGroups.length === 0 && (
         <Card className="text-center text-lg text-zinc-500">확인할 사진이 없습니다.</Card>
       )}
 
-      {groups.map((group) => {
+      {visibleGroups.map((group) => {
         const isChecked = checked.has(group.id);
         return (
           <Card
@@ -135,13 +141,16 @@ export function ReviewScreen({
                 className="h-11 w-28 shrink-0 rounded-xl bg-zinc-100 px-3 text-center text-base font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
-                defaultValue={group.departureTime ?? ""}
-                onBlur={(e) => handleDepartureTimeChange(group.id, e.target.value, group.departureTime)}
+                defaultValue={formatDepartureTime(group.departureTime)}
+                onBlur={(e) => handleDepartureTimeChange(group.id, e.target, group.departureTime)}
                 placeholder="출발시간"
                 className="h-11 w-20 shrink-0 rounded-xl bg-zinc-100 px-2 text-center text-base text-zinc-700 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500"
               />
               <div className="flex-1" />
-              <DeleteDeliveryButton deliveryId={group.id} />
+              <DeleteDeliveryButton
+                deliveryId={group.id}
+                onDeleted={() => setDeletedIds((prev) => new Set(prev).add(group.id))}
+              />
             </div>
 
             <DeliveryCountSummary
