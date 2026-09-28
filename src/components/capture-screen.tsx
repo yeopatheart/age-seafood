@@ -48,10 +48,19 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
             // 압축이 안 되는 환경이면 원본 그대로 올린다
           }
           const storagePath = `label/${crypto.randomUUID()}.jpg`;
-          const { error: uploadError } = await supabase.storage.from("label-photos").upload(storagePath, toUpload);
+
+          const formData = new FormData();
+          formData.set("image", toUpload, "photo.jpg");
+          formData.set("knownTerminals", JSON.stringify(knownTerminals));
+
+          // 업로드가 끝난 뒤에야 AI를 부르지 않고, 압축된 같은 사진 바이트로 스토리지 업로드와
+          // AI 인식을 동시에 시작한다 — 순차 대비 리드타임이 크게 줄어든다.
+          const [{ error: uploadError }, suggested] = await Promise.all([
+            supabase.storage.from("label-photos").upload(storagePath, toUpload),
+            suggestTerminalName(formData),
+          ]);
           if (uploadError) throw new Error(uploadError.message);
 
-          const suggested = await suggestTerminalName(storagePath, knownTerminals);
           const groupName = suggested?.trim() || UNRECOGNIZED;
           groups.set(groupName, [...(groups.get(groupName) ?? []), storagePath]);
         } catch {
@@ -97,10 +106,19 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
             // 압축이 안 되는 환경이면 원본 그대로 올린다
           }
           const storagePath = `invoice/${crypto.randomUUID()}.jpg`;
-          const { error: uploadError } = await supabase.storage.from("label-photos").upload(storagePath, toUpload);
+
+          const formData = new FormData();
+          formData.set("image", toUpload, "photo.jpg");
+          formData.set("knownTerminals", JSON.stringify(knownTerminals));
+
+          // 업로드가 끝난 뒤에야 AI를 부르지 않고, 압축된 같은 사진 바이트로 스토리지 업로드와
+          // AI 인식을 동시에 시작한다 — 순차 대비 리드타임이 크게 줄어든다.
+          const [{ error: uploadError }, suggested] = await Promise.all([
+            supabase.storage.from("label-photos").upload(storagePath, toUpload),
+            suggestBusInvoiceInfo(formData),
+          ]);
           if (uploadError) throw new Error(uploadError.message);
 
-          const suggested = await suggestBusInvoiceInfo(storagePath, knownTerminals);
           await uploadBusInvoice(defaultDate, storagePath, suggested);
 
           const name = suggested.terminalName?.trim() || UNRECOGNIZED;

@@ -1,7 +1,6 @@
 "use server";
 
 import sharp from "sharp";
-import { createClient } from "@/lib/supabase/server";
 import { getAnthropicClient } from "@/lib/anthropic-client";
 
 // Claude 표준 모델은 이미지 1장당 최대 약 1568 토큰(=비용)으로 계산된다. Storage에는 사람이
@@ -10,12 +9,28 @@ import { getAnthropicClient } from "@/lib/anthropic-client";
 // (1600 → 1280은 이미지 토큰을 대략 30% 줄인다).
 const VISION_MAX_DIMENSION = 1280;
 
-async function downloadForVision(storagePath: string): Promise<string | null> {
-  const supabase = await createClient();
-  const { data: file, error } = await supabase.storage.from("label-photos").download(storagePath);
-  if (error || !file) return null;
+// 예전에는 스토리지에 업로드가 끝난 뒤 그 파일을 다시 내려받아서 AI에 보냈다 — 업로드 한 번,
+// 다운로드 한 번, 그리고 그 다음에야 AI 호출이 시작되는 완전 순차 구조라 리드타임이 길었다.
+// 지금은 브라우저가 압축까지 마친 사진 바이트를 폼데이터로 바로 받아서, 스토리지 업로드와
+// AI 호출을 동시에(Promise.all) 시작할 수 있게 한다 — 왕복 한 번을 통째로 없앤 것.
+async function bufferFromFormData(formData: FormData): Promise<Buffer | null> {
+  const file = formData.get("image");
+  if (!(file instanceof Blob)) return null;
+  return Buffer.from(await file.arrayBuffer());
+}
 
-  const buffer = Buffer.from(await file.arrayBuffer());
+function knownTerminalsFromFormData(formData: FormData): string[] {
+  const raw = formData.get("knownTerminals");
+  if (typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function resizeForVision(buffer: Buffer): Promise<string> {
   try {
     const resized = await sharp(buffer)
       .resize({ width: VISION_MAX_DIMENSION, height: VISION_MAX_DIMENSION, fit: "inside", withoutEnlargement: true })
@@ -45,9 +60,13 @@ function normalizeTerminalName(raw: string, knownTerminals: string[]): string {
 
 // 라벨 사진에서 도착 터미널명을 "제안"만 한다 — 사람이 확인 탭에서 확인·수정한다.
 // knownTerminals를 주면 기존에 쓰던 이름과 표기를 통일하도록 유도한다(예: "남부" 대신 "남부터미널").
-export async function suggestTerminalName(storagePath: string, knownTerminals: string[]): Promise<string | null> {
-  const base64 = await downloadForVision(storagePath);
-  if (!base64) return null;
+// formData는 { image: Blob, knownTerminals: JSON string } — 스토리지 경로가 아니라 브라우저가
+// 이미 압축해둔 사진 바이트를 직접 받아서, 업로드와 이 호출을 동시에 시작할 수 있게 한다.
+export async function suggestTerminalName(formData: FormData): Promise<string | null> {
+  const buffer = await bufferFromFormData(formData);
+  if (!buffer) return null;
+  const knownTerminals = knownTerminalsFromFormData(formData);
+  const base64 = await resizeForVision(buffer);
 
   try {
     const anthropic = getAnthropicClient();
@@ -106,11 +125,13 @@ export type BusInvoiceInfo = {
 // 버스 송장 사진 한 장에서 터미널명·출발시간·박스 수량을 한 번의 비전 호출로 모두 읽어
 // "제안"한다 — 사람이 확인 탭에서 확인·수정한다. 손글씨라 항목별로 따로 실패할 수 있어
 // 각 필드를 독립적으로 null 허용한다(하나를 못 읽어도 나머지는 쓸 수 있게).
-export async function suggestBusInvoiceInfo(storagePath: string, knownTerminals: string[]): Promise<BusInvoiceInfo> {
+export async function suggestBusInvoiceInfo(formData: FormData): Promise<BusInvoiceInfo> {
   const empty: BusInvoiceInfo = { terminalName: null, departureTime: null, boxCount: null };
 
-  const base64 = await downloadForVision(storagePath);
-  if (!base64) return empty;
+  const buffer = await bufferFromFormData(formData);
+  if (!buffer) return empty;
+  const knownTerminals = knownTerminalsFromFormData(formData);
+  const base64 = await resizeForVision(buffer);
 
   try {
     const anthropic = getAnthropicClient();
