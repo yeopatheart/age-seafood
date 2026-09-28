@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { readDisplayName } from "@/lib/user-display-name";
 import { UserMenu } from "@/components/user-menu";
 import { BottomNav } from "@/components/bottom-nav";
 
@@ -10,7 +11,9 @@ export async function NavBar() {
 
   if (!data?.claims) return null;
 
-  const label = data.claims.email?.split("@")[0] ?? "계정";
+  // 설정 탭에서 이름을 등록하지 않은 사용자는 이메일 아이디로 대신 보여준다.
+  const emailPrefix = data.claims.email?.split("@")[0] ?? "계정";
+  const label = readDisplayName(data.claims.user_metadata) || emailPrefix;
 
   return (
     <>
