@@ -22,7 +22,7 @@ export function BottomNav() {
             key={href}
             href={href}
             className={`flex min-h-20 flex-1 flex-col items-center justify-center gap-1 text-base font-semibold transition-colors ${
-              active ? "text-blue-600" : "text-zinc-400"
+              active ? "text-[#10223d]" : "text-zinc-400"
             }`}
           >
             <Icon className="h-7 w-7" strokeWidth={active ? 2.5 : 2} />

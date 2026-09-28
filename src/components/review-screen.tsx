@@ -154,7 +154,7 @@ export function ReviewScreen({
         return (
           <Card
             key={group.id}
-            className={`space-y-4 transition-shadow ${isChecked ? "ring-2 ring-blue-500" : ""}`}
+            className={`space-y-4 transition-shadow ${isChecked ? "ring-2 ring-[#10223d]" : ""}`}
           >
             <div className="flex items-center gap-1.5">
               <label className="relative flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center">
@@ -165,7 +165,7 @@ export function ReviewScreen({
                   className="peer sr-only"
                   aria-label={`${group.terminalName} 확정 대상으로 선택`}
                 />
-                <span className="absolute inset-0 rounded-full border-2 border-zinc-300 bg-white transition-colors peer-checked:border-blue-600 peer-checked:bg-blue-600" />
+                <span className="absolute inset-0 rounded-full border-2 border-zinc-300 bg-white transition-colors peer-checked:border-[#10223d] peer-checked:bg-[#10223d]" />
                 <Check
                   className="relative h-4 w-4 text-white opacity-0 transition-opacity peer-checked:opacity-100"
                   strokeWidth={3}

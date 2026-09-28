@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { readDisplayName } from "@/lib/user-display-name";
 import { UserMenu } from "@/components/user-menu";
@@ -22,8 +23,9 @@ export async function NavBar() {
         <div className="flex items-center gap-1">
           <Link
             href="/settings"
-            className="flex h-10 items-center rounded-full px-4 text-base font-semibold text-zinc-600 transition-colors active:bg-zinc-100"
+            className="flex h-10 items-center gap-1.5 rounded-full px-4 text-base font-semibold text-zinc-600 transition-colors active:bg-zinc-100"
           >
+            <Settings className="h-5 w-5" strokeWidth={2} />
             설정
           </Link>
           <UserMenu label={label} />
