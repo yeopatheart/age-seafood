@@ -64,14 +64,16 @@ export default async function HistoryPage({
           return (
             <Card key={delivery.trip_id} className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-lg font-bold text-zinc-900">
-                  {delivery.terminal_name}
+                <div className="flex items-center gap-1.5">
+                  <span className="flex h-12 items-center rounded-xl bg-zinc-100 px-3 text-base font-bold text-zinc-900">
+                    {delivery.terminal_name}
+                  </span>
                   {delivery.departure_time && (
-                    <span className="ml-1 font-medium text-zinc-500">
+                    <span className="flex h-12 items-center rounded-xl bg-zinc-100 px-3 text-base text-zinc-700">
                       {formatDepartureTime(delivery.departure_time)}
                     </span>
                   )}
-                </p>
+                </div>
                 <ReviewStatusBadge reviewed={delivery.latest_reviewed_at !== null} />
               </div>
 

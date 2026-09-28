@@ -174,13 +174,13 @@ export function ReviewScreen({
               <input
                 defaultValue={group.terminalName}
                 onBlur={(e) => handleRename(group.id, e.target.value, group.terminalName)}
-                className="h-11 w-24 min-w-0 shrink rounded-xl bg-zinc-100 px-2 text-center text-base font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-12 w-24 min-w-0 shrink rounded-xl bg-zinc-100 px-3 text-center text-base font-bold text-zinc-900 outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
                 defaultValue={formatDepartureTime(group.departureTime)}
                 onBlur={(e) => handleDepartureTimeChange(group.id, e.target, group.departureTime)}
                 placeholder="출발시간"
-                className="h-11 w-16 shrink-0 rounded-xl bg-zinc-100 px-1 text-center text-base text-zinc-700 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500"
+                className="h-12 w-16 shrink-0 rounded-xl bg-zinc-100 px-2 text-center text-base text-zinc-700 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500"
               />
               <div className="flex-1" />
               <DeleteDeliveryButton
