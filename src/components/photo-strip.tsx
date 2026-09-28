@@ -42,8 +42,11 @@ export function PhotoStrip({
             onClick={() => setZoomedIndex(i)}
             className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-transform active:scale-95"
           >
-            {/* 서명 URL 원본(최대 1600px)을 그대로 내려받지 않도록 썸네일 크기로 다시 인코딩한다 */}
-            <Image src={photo.url} alt="사진" fill sizes="80px" className="object-cover" />
+            {/* 프록시 경로(/api/photos)가 직접 리사이즈해서 내려준다 — next/image 자체 최적화는
+                쓰지 않는다. 그 내부 요청엔 로그인 쿠키가 안 실려서 이 경로가 401로 막고, 결국
+                깨진 이미지로 보이는 버그가 있었다(unoptimized로 next/image가 그 경로를 타지 않게
+                하고, 브라우저가 쿠키를 실어 이 경로를 직접 요청하게 한다). */}
+            <Image src={`${photo.url}?w=160`} alt="사진" fill unoptimized className="object-cover" />
           </button>
         ))}
       </div>
