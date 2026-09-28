@@ -180,7 +180,7 @@ export function ReviewScreen({
                 defaultValue={formatDepartureTime(group.departureTime)}
                 onBlur={(e) => handleDepartureTimeChange(group.id, e.target, group.departureTime)}
                 placeholder="출발시간"
-                className="h-12 w-16 shrink-0 rounded-xl bg-zinc-100 px-2 text-center text-base text-zinc-700 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500"
+                className="h-12 w-24 shrink-0 rounded-xl bg-zinc-100 px-3 text-center text-base text-zinc-700 outline-none placeholder:text-zinc-400 focus:ring-2 focus:ring-blue-500"
               />
               <div className="flex-1" />
               <DeleteDeliveryButton
