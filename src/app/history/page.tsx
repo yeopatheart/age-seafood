@@ -4,6 +4,7 @@ import { DeliveryPhotoRows } from "@/components/delivery-photo-rows";
 import { DatePicker } from "@/components/date-picker";
 import { Card } from "@/components/ui/card";
 import { formatDepartureTime } from "@/lib/format-departure-time";
+import { photoUrl } from "@/lib/photo-url";
 
 function todayKST() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -36,12 +37,6 @@ export default async function HistoryPage({
           .order("taken_at", { ascending: false })
       : { data: [] };
 
-  // 사진마다 서명 URL을 따로 요청하면 그룹이 많아질수록 느려진다 — 한 번에 배치로 발급받는다.
-  const paths = (photos ?? []).map((p) => p.storage_path);
-  const { data: signedUrls } =
-    paths.length > 0 ? await supabase.storage.from("label-photos").createSignedUrls(paths, 3600) : { data: [] };
-  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? ""]));
-
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-4">
       <DatePicker date={tripDate} />
@@ -53,7 +48,7 @@ export default async function HistoryPage({
         {(deliveries ?? []).map((delivery) => {
           const deliveryPhotos = (photos ?? [])
             .filter((p) => p.bus_trip_id === delivery.trip_id)
-            .map((p) => ({ id: p.id, url: urlByPath.get(p.storage_path) ?? "", photoType: p.photo_type }));
+            .map((p) => ({ id: p.id, url: photoUrl(p.storage_path), photoType: p.photo_type }));
 
           return (
             <Card key={delivery.trip_id} className="space-y-4">
