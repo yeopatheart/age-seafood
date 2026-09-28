@@ -16,8 +16,10 @@ export default async function CapturePage() {
 
   const knownTerminals = recentUnique((recentDeliveries ?? []).map((t) => t.terminal_name), 20);
 
+  // absolute inset-0: 부모의 pb-28(다른 페이지들의 하단 탭 여유 공간)까지 무시하고 헤더 바로
+  // 아래부터 탭 바로 위까지 정확히 꽉 채운다 — 버튼 2개로 화면이 꽉 차야 한다.
   return (
-    <main className="mx-auto flex h-full max-w-3xl flex-col p-4 pt-6">
+    <main className="absolute inset-0 mx-auto flex max-w-3xl flex-col">
       <CaptureScreen knownTerminals={knownTerminals} defaultDate={todayKST()} />
     </main>
   );
