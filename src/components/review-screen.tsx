@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Calendar } from "lucide-react";
+import { Check, Calendar, Loader2 } from "lucide-react";
 import { renameGroup, updateDepartureTime, confirmGroups, moveLabelPhoto } from "@/app/actions";
 import { formatDepartureTime } from "@/lib/format-departure-time";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,6 @@ type Group = {
   id: string;
   terminalName: string;
   departureTime: string | null;
-  labelPhotoCount: number;
-  invoicePhotoCount: number;
   invoiceBoxCount: number | null;
   photos: Photo[];
 };
@@ -27,11 +25,13 @@ export function ReviewScreen({
   groups,
   totalLabelPhotos,
   terminalNames,
+  pendingCount,
 }: {
   tripDate: string;
   groups: Group[];
   totalLabelPhotos: number;
   terminalNames: string[];
+  pendingCount: number;
 }) {
   const router = useRouter();
   const [checked, setChecked] = useState<Set<string>>(new Set());
@@ -41,12 +41,10 @@ export function ReviewScreen({
 
   const visibleGroups = groups.filter((g) => !deletedIds.has(g.id));
 
-  // 업로드 직후엔 AI 분류가 아직 백그라운드에서 진행 중이라 "미확인"으로 보일 수 있다 — 분류가
-  // 끝나는 대로(서버가 revalidatePath로 캐시를 갱신해두면) 화면에도 반영되도록 잠깐 동안만
-  // 주기적으로 새로고침한다. 계속 미확인이면(정말 인식 못 한 경우) 일정 시간 뒤 멈춘다.
-  const hasUnrecognized = visibleGroups.some((g) => g.terminalName === "미확인");
+  // 업로드 직후엔 AI 분류가 아직 백그라운드에서 진행 중일 수 있다 — 분류가 끝나는 대로(서버가
+  // revalidatePath로 캐시를 갱신해두면) 화면에도 반영되도록 잠깐 동안만 주기적으로 새로고침한다.
   useEffect(() => {
-    if (!hasUnrecognized) return;
+    if (pendingCount === 0) return;
     let count = 0;
     const interval = setInterval(() => {
       count += 1;
@@ -54,7 +52,18 @@ export function ReviewScreen({
       if (count >= 10) clearInterval(interval);
     }, 3000);
     return () => clearInterval(interval);
-  }, [hasUnrecognized, router]);
+  }, [pendingCount, router]);
+
+  // 분류 중 사진 수는 하나씩 줄어들다 0이 되므로, 처음 본 최대치를 기준으로 진행률(%)을 낸다.
+  // 도중에 사진이 더 올라와서 대기 수가 다시 늘면 그 값을 새 기준으로 삼는다 — 렌더링 도중
+  // 값을 조정하는 React 권장 패턴(이펙트 대신)으로, 이전 pendingCount와 비교해 변화를 감지한다.
+  const [prevPendingCount, setPrevPendingCount] = useState(pendingCount);
+  const [pendingBaseline, setPendingBaseline] = useState(pendingCount);
+  if (pendingCount !== prevPendingCount) {
+    setPrevPendingCount(pendingCount);
+    if (pendingCount > pendingBaseline || pendingCount === 0) setPendingBaseline(pendingCount);
+  }
+  const progressPercent = pendingBaseline > 0 ? Math.round(((pendingBaseline - pendingCount) / pendingBaseline) * 100) : 0;
 
   function toggleChecked(id: string) {
     setChecked((prev) => {
@@ -121,7 +130,22 @@ export function ReviewScreen({
         </p>
       </div>
 
-      {visibleGroups.length === 0 && (
+      {pendingCount > 0 && (
+        <div className="space-y-2 rounded-2xl bg-blue-50 px-4 py-3">
+          <p className="flex items-center gap-2 text-base font-medium text-blue-700">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            AI가 사진을 분류하고 있어요 ({pendingBaseline - pendingCount}/{pendingBaseline})
+          </p>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-blue-100">
+            <div
+              className="h-full rounded-full bg-blue-600 transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {visibleGroups.length === 0 && pendingCount === 0 && (
         <Card className="text-center text-lg text-zinc-500">확인할 사진이 없습니다.</Card>
       )}
 

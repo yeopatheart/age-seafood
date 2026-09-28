@@ -51,6 +51,19 @@ async function findOrCreateTrip(
   return created.id;
 }
 
+// 백그라운드 분류가 끝나서 "미확인"에 있던 사진이 전부 실제 그룹으로 옮겨지면, 빈 "미확인"
+// 배송이 그대로 남아 확인 탭에 "버스송장 0장 · 택배송장 0장" 카드로 보이는 문제가 있었다.
+// 사진을 옮길 때마다 원래 그룹이 비었는지 확인해서, 비었으면 같이 지운다.
+async function deleteTripIfEmpty(supabase: SupabaseClient<Database>, tripId: string) {
+  const { count } = await supabase
+    .from("label_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("bus_trip_id", tripId);
+  if (count === 0) {
+    await supabase.from("bus_trips").delete().eq("id", tripId);
+  }
+}
+
 // 배송을 지우면 label_photos·trip_reviews 행은 cascade로 같이 지워지지만, Storage의 실제 파일은
 // 별도로 지워야 고아 파일로 남지 않는다.
 export async function deleteDelivery(deliveryId: string) {
@@ -87,21 +100,19 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
   const knownTerminals = JSON.parse(formData.get("knownTerminals") as string) as string[];
 
   const unrecognizedTripId = await findOrCreateTrip(supabase, userId, tripDate, UNRECOGNIZED);
-  const { error: insertError } = await supabase.from("label_photos").insert(
-    storagePaths.map((storagePath) => ({
-      bus_trip_id: unrecognizedTripId,
-      storage_path: storagePath,
-      photo_type: "label" as const,
-      taken_by: userId,
-    })),
-  );
-  if (insertError) throw new Error(insertError.message);
-
-  const { data: insertedPhotos } = await supabase
+  const { data: insertedPhotos, error: insertError } = await supabase
     .from("label_photos")
-    .select("id, storage_path")
-    .eq("bus_trip_id", unrecognizedTripId)
-    .in("storage_path", storagePaths);
+    .insert(
+      storagePaths.map((storagePath) => ({
+        bus_trip_id: unrecognizedTripId,
+        storage_path: storagePath,
+        photo_type: "label" as const,
+        taken_by: userId,
+        classification_status: "pending" as const,
+      })),
+    )
+    .select("id, storage_path"); // insert 결과를 바로 받아서 id 조회용 왕복을 하나 줄인다
+  if (insertError) throw new Error(insertError.message);
   const photoIdByPath = new Map((insertedPhotos ?? []).map((p) => [p.storage_path, p.id]));
 
   revalidateAll();
@@ -125,17 +136,26 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
           visionFormData.set("knownTerminals", JSON.stringify(knownTerminals));
 
           const terminalName = await suggestTerminalName(visionFormData);
-          return terminalName ? { photoId, terminalName } : null; // 인식 못 하면 "미확인"에 남는다
+          return { photoId, terminalName };
         }),
       ),
     );
 
     for (const result of classified) {
       if (!result) continue;
-      const targetTripId = await findOrCreateTrip(bgSupabase, userId, tripDate, result.terminalName);
-      await bgSupabase.from("label_photos").update({ bus_trip_id: targetTripId }).eq("id", result.photoId);
+      if (result.terminalName) {
+        const targetTripId = await findOrCreateTrip(bgSupabase, userId, tripDate, result.terminalName);
+        await bgSupabase
+          .from("label_photos")
+          .update({ bus_trip_id: targetTripId, classification_status: "done" })
+          .eq("id", result.photoId);
+      } else {
+        // 끝내 인식 못 했으면 "미확인"에 남되, 더 이상 분류 대기 중은 아니라고 표시한다.
+        await bgSupabase.from("label_photos").update({ classification_status: "done" }).eq("id", result.photoId);
+      }
     }
 
+    await deleteTripIfEmpty(bgSupabase, unrecognizedTripId);
     revalidateAll();
   });
 }
@@ -181,22 +201,19 @@ export async function uploadBusInvoicesAsync(tripDate: string, formData: FormDat
   const knownTerminals = JSON.parse(formData.get("knownTerminals") as string) as string[];
 
   const unrecognizedTripId = await findOrCreateTrip(supabase, userId, tripDate, UNRECOGNIZED);
-  const { error: insertError } = await supabase.from("label_photos").insert(
-    storagePaths.map((storagePath) => ({
-      bus_trip_id: unrecognizedTripId,
-      storage_path: storagePath,
-      photo_type: "invoice" as const,
-      taken_by: userId,
-    })),
-  );
-  if (insertError) throw new Error(insertError.message);
-
-  const { data: insertedPhotos } = await supabase
+  const { data: insertedPhotos, error: insertError } = await supabase
     .from("label_photos")
-    .select("id, storage_path")
-    .eq("bus_trip_id", unrecognizedTripId)
-    .eq("photo_type", "invoice")
-    .in("storage_path", storagePaths);
+    .insert(
+      storagePaths.map((storagePath) => ({
+        bus_trip_id: unrecognizedTripId,
+        storage_path: storagePath,
+        photo_type: "invoice" as const,
+        taken_by: userId,
+        classification_status: "pending" as const,
+      })),
+    )
+    .select("id, storage_path"); // insert 결과를 바로 받아서 id 조회용 왕복을 하나 줄인다
+  if (insertError) throw new Error(insertError.message);
   const photoIdByPath = new Map((insertedPhotos ?? []).map((p) => [p.storage_path, p.id]));
 
   revalidateAll();
@@ -219,8 +236,7 @@ export async function uploadBusInvoicesAsync(tripDate: string, formData: FormDat
           visionFormData.set("knownTerminals", JSON.stringify(knownTerminals));
 
           const suggested = await suggestBusInvoiceInfo(visionFormData);
-          const terminalName = suggested.terminalName?.trim();
-          return terminalName ? { photoId, terminalName, suggested } : null; // 인식 못 하면 "미확인"에 남는다
+          return { photoId, terminalName: suggested.terminalName?.trim(), suggested };
         }),
       ),
     );
@@ -228,6 +244,13 @@ export async function uploadBusInvoicesAsync(tripDate: string, formData: FormDat
     for (const result of classified) {
       if (!result) continue;
       const { photoId, terminalName, suggested } = result;
+
+      if (!terminalName) {
+        // 끝내 인식 못 했으면 "미확인"에 남되, 더 이상 분류 대기 중은 아니라고 표시한다.
+        await bgSupabase.from("label_photos").update({ classification_status: "done" }).eq("id", photoId);
+        continue;
+      }
+
       const targetTripId = await findOrCreateTrip(bgSupabase, userId, tripDate, terminalName);
 
       await bgSupabase
@@ -249,9 +272,13 @@ export async function uploadBusInvoicesAsync(tripDate: string, formData: FormDat
           .in("id", existing.map((p) => p.id));
       }
 
-      await bgSupabase.from("label_photos").update({ bus_trip_id: targetTripId }).eq("id", photoId);
+      await bgSupabase
+        .from("label_photos")
+        .update({ bus_trip_id: targetTripId, classification_status: "done" })
+        .eq("id", photoId);
     }
 
+    await deleteTripIfEmpty(bgSupabase, unrecognizedTripId);
     revalidateAll();
   });
 }

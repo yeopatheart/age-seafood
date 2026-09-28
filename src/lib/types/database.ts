@@ -23,6 +23,11 @@ type BusTrip = {
 
 type PhotoType = "label" | "invoice";
 
+// 업로드 직후엔 'pending'(AI 분류가 아직 백그라운드에서 진행 중)으로 들어가고, 분류가 끝나면
+// 터미널을 찾았든 못 찾았든 'done'이 된다 — 확인 탭이 "분류 대기 중"과 "정말 못 찾음"을
+// 구분해서 보여주는 데 쓴다.
+type ClassificationStatus = "pending" | "done";
+
 type LabelPhoto = {
   id: string;
   bus_trip_id: string;
@@ -30,6 +35,7 @@ type LabelPhoto = {
   storage_path: string;
   taken_by: string | null;
   taken_at: string;
+  classification_status: ClassificationStatus;
 };
 
 // 검수는 정상/문제있음 구분 없이 "검수완료" 하나뿐이다 (스와이프로 확인). 문제가 있으면 메모에 적는다.
@@ -75,7 +81,11 @@ export type Database = {
       >;
       label_photos: TableDef<
         LabelPhoto,
-        Omit<LabelPhoto, "id" | "taken_at"> & { id?: string; taken_at?: string }
+        Omit<LabelPhoto, "id" | "taken_at" | "classification_status"> & {
+          id?: string;
+          taken_at?: string;
+          classification_status?: ClassificationStatus;
+        }
       >;
       trip_reviews: TableDef<
         TripReview,

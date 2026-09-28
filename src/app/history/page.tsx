@@ -46,8 +46,10 @@ export default async function HistoryPage({
           <Card className="text-center text-lg text-zinc-500">조건에 맞는 기록이 없습니다.</Card>
         )}
         {(deliveries ?? []).map((delivery) => {
+          // 확정된 배송은 실무상 분류 대기 중인 사진이 남아있을 일이 없지만, 방어적으로 같은
+          // 필터를 적용해서 혹시 모를 pending 사진이 섞여 보이지 않게 한다.
           const deliveryPhotos = (photos ?? [])
-            .filter((p) => p.bus_trip_id === delivery.trip_id)
+            .filter((p) => p.bus_trip_id === delivery.trip_id && p.classification_status === "done")
             .map((p) => ({ id: p.id, url: photoUrl(p.storage_path), photoType: p.photo_type }));
 
           return (
