@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCcw, X } from "lucide-react";
 import { deleteDelivery } from "@/app/actions";
 
 // 삭제가 끝나면 페이지 전체가 다시 조회될 때까지 기다리지 않고, onDeleted로 부모의 화면
@@ -41,10 +41,16 @@ export function DeleteDeliveryButton({
     <button
       onClick={handleDelete}
       disabled={pending}
-      className="flex h-11 w-24 shrink-0 items-center justify-center gap-1 rounded-full text-sm font-semibold text-rose-500 transition-colors active:bg-rose-50 disabled:cursor-not-allowed"
+      aria-label={error ? "삭제 다시 시도" : "삭제"}
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-colors active:bg-rose-50 active:text-rose-500 disabled:cursor-not-allowed"
     >
-      {pending && <Loader2 className="h-4 w-4 animate-spin" />}
-      {pending ? "삭제 중..." : error ? "다시 시도" : "삭제"}
+      {pending ? (
+        <Loader2 className="h-5 w-5 animate-spin text-rose-500" />
+      ) : error ? (
+        <RotateCcw className="h-5 w-5 text-rose-500" strokeWidth={2.25} />
+      ) : (
+        <X className="h-5 w-5" strokeWidth={2.25} />
+      )}
     </button>
   );
 }

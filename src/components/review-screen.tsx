@@ -99,7 +99,7 @@ export function ReviewScreen({
           {tripDate}
         </div>
         <p className="text-right text-base font-medium text-zinc-500">
-          전체 업로드 <span className="font-bold text-zinc-900">{totalLabelPhotos}</span>장 | 터미널{" "}
+          전체 박스 <span className="font-bold text-zinc-900">{totalLabelPhotos}</span>개 | 터미널{" "}
           <span className="font-bold text-zinc-900">{visibleGroups.length}</span>개
         </p>
       </div>
