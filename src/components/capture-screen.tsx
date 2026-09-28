@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
 import { dedupeFiles } from "@/lib/dedupe-files";
 import { commitLabelPhotosAsync, uploadBusInvoicesAsync } from "@/app/actions";
-import { Button } from "@/components/ui/button";
 import { ContinuousCamera } from "@/components/continuous-camera";
 
 // AI 분류는 이제 업로드를 막지 않고 백그라운드(after)에서 도니까, 화질을 더 올려도 체감
@@ -166,22 +165,23 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
 
   return (
     <div className="space-y-4">
-      <Button
-        onClick={() => setCameraOpen(true)}
-        className="flex min-h-24 w-full items-center justify-center gap-2 text-2xl shadow-[0_12px_24px_-8px_rgba(16,34,61,0.45)]"
-      >
-        <Package className="h-7 w-7" strokeWidth={2.25} />
-        택배송장 올리기
-      </Button>
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          onClick={() => setCameraOpen(true)}
+          className="flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-3xl bg-[#10223d] text-[#fffdf0] shadow-[0_12px_24px_-8px_rgba(16,34,61,0.45)] transition-colors active:bg-[#0c1a30]"
+        >
+          <Package className="h-12 w-12" strokeWidth={2} />
+          <span className="px-2 text-center text-xl font-semibold leading-tight">택배송장 올리기</span>
+        </button>
 
-      <Button
-        variant="blue"
-        onClick={() => setInvoiceCameraOpen(true)}
-        className="flex min-h-24 w-full items-center justify-center gap-2 text-2xl shadow-[0_12px_24px_-8px_rgba(37,99,235,0.45)]"
-      >
-        <Bus className="h-7 w-7" strokeWidth={2.25} />
-        버스송장 올리기
-      </Button>
+        <button
+          onClick={() => setInvoiceCameraOpen(true)}
+          className="flex aspect-square w-full flex-col items-center justify-center gap-3 rounded-3xl bg-blue-600 text-white shadow-[0_12px_24px_-8px_rgba(37,99,235,0.45)] transition-colors active:bg-blue-700"
+        >
+          <Bus className="h-12 w-12" strokeWidth={2} />
+          <span className="px-2 text-center text-xl font-semibold leading-tight">버스송장 올리기</span>
+        </button>
+      </div>
 
       {cameraOpen && (
         <ContinuousCamera

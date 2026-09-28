@@ -4,7 +4,6 @@ import type { ButtonHTMLAttributes } from "react";
 const VARIANT_CLASSES = {
   primary: "bg-[#10223d] text-[#fffdf0] active:bg-[#0c1a30] disabled:opacity-40",
   secondary: "bg-zinc-100 text-zinc-900 active:bg-zinc-200 disabled:opacity-40",
-  blue: "bg-blue-600 text-white active:bg-blue-700 disabled:opacity-40",
   danger: "bg-rose-50 text-rose-600 active:bg-rose-100 disabled:opacity-40",
 } as const;
 
