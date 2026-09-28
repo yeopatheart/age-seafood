@@ -11,12 +11,20 @@ export function DeliveryPhotoRows({
   labelPhotos,
   invoicePhotos,
   invoiceBoxCount,
+  moveOptions,
+  onMoveLabelPhoto,
 }: {
   labelPhotos: Photo[];
   invoicePhotos: Photo[];
   invoiceBoxCount: number | null;
+  moveOptions?: string[];
+  onMoveLabelPhoto?: (photoId: string, targetName: string) => void;
 }) {
-  const matches = invoiceBoxCount === labelPhotos.length;
+  // 박스 수량(버스송장에 적힌 신고 수량)과 실제로 올라온 택배송장 사진 장수를 대사한다.
+  // 단순 일치/불일치만 보여주면 1개 차이와 10개 차이를 구분할 수 없어서, 차이 값과 방향을
+  // 같이 보여준다 — 담당자가 뭘 먼저 봐야 할지 바로 판단할 수 있게.
+  const diff = invoiceBoxCount === null ? null : invoiceBoxCount - labelPhotos.length;
+  const matches = diff === 0;
 
   return (
     <div className="space-y-3">
@@ -26,7 +34,8 @@ export function DeliveryPhotoRows({
             matches ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
           }`}
         >
-          수량 <span className="tabular-nums">{invoiceBoxCount}</span> {matches ? "일치" : "불일치"}
+          <span className="tabular-nums">{labelPhotos.length}</span>/<span className="tabular-nums">{invoiceBoxCount}</span>
+          {matches ? " 일치" : diff! > 0 ? ` · ${diff}개 부족` : ` · ${Math.abs(diff!)}개 초과`}
         </span>
       )}
 
@@ -44,7 +53,7 @@ export function DeliveryPhotoRows({
           택배송장 <span className="tabular-nums font-bold text-zinc-900">{labelPhotos.length}</span>장
         </span>
         <div className="min-w-0 flex-1">
-          <PhotoStrip photos={labelPhotos} />
+          <PhotoStrip photos={labelPhotos} moveOptions={moveOptions} onMove={onMoveLabelPhoto} />
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Package, Bus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/compress-image";
+import { dedupeFiles } from "@/lib/dedupe-files";
 import { commitLabelPhotoGroups, uploadBusInvoice } from "@/app/actions";
 import { suggestTerminalName, suggestBusInvoiceInfo } from "@/app/vision-actions";
 import { Button } from "@/components/ui/button";
@@ -33,13 +34,18 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
     setDoneMessage(null);
     setUploading(true);
     setProcessedCount(0);
-    setTotalCount(files.length);
+
+    // 갤러리에서 같은 사진을 두 번 고르는 실수를 미리 걸러낸다 — 택배송장 장수가 부풀려지면
+    // 버스송장 수량과의 대사 결과가 틀어지기 때문에 업로드 전에 막는 게 낫다.
+    const { unique, duplicateCount } = await dedupeFiles(files);
+    setTotalCount(unique.length);
 
     const supabase = createClient();
     const groups = new Map<string, string[]>();
+    const failedNumbers: number[] = [];
 
     await Promise.all(
-      files.map(async (file) => {
+      unique.map(async (file, index) => {
         try {
           let toUpload: File | Blob = file;
           try {
@@ -64,21 +70,33 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
           const groupName = suggested?.trim() || UNRECOGNIZED;
           groups.set(groupName, [...(groups.get(groupName) ?? []), storagePath]);
         } catch {
-          setError("일부 사진 업로드에 실패했습니다. 다시 시도해주세요.");
+          // 몇 번째 사진인지 알아야 그 사진만 다시 찍을 수 있다 — "일부 실패"라고만 하면
+          // 이미 성공한 사진까지 다시 올려서 중복이 생길 수 있다.
+          failedNumbers.push(index + 1);
         } finally {
           setProcessedCount((c) => c + 1);
         }
       }),
     );
 
+    const payload = Array.from(groups.entries()).map(([terminalName, storagePaths]) => ({
+      terminalName,
+      storagePaths,
+    }));
+    const notes = [
+      duplicateCount > 0 ? `중복 ${duplicateCount}장 제외` : null,
+      failedNumbers.length > 0 ? `${failedNumbers.join(", ")}번째 사진 업로드 실패` : null,
+    ].filter((n): n is string => n !== null);
+    const noteSuffix = notes.length > 0 ? ` (${notes.join(" · ")})` : "";
+
     try {
-      const payload = Array.from(groups.entries()).map(([terminalName, storagePaths]) => ({
-        terminalName,
-        storagePaths,
-      }));
-      await commitLabelPhotoGroups(defaultDate, payload);
-      const summary = payload.map((g) => `${g.terminalName} ${g.storagePaths.length}장`).join(", ");
-      setDoneMessage(`분류 완료: ${summary}`);
+      if (payload.length > 0) {
+        await commitLabelPhotoGroups(defaultDate, payload);
+        const summary = payload.map((g) => `${g.terminalName} ${g.storagePaths.length}장`).join(", ");
+        setDoneMessage(`분류 완료: ${summary}${noteSuffix}`);
+      } else if (failedNumbers.length > 0) {
+        setError(`${failedNumbers.join(", ")}번째 사진 업로드에 실패했습니다. 다시 촬영해주세요.`);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "저장에 실패했습니다.");
     } finally {
@@ -91,13 +109,16 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
     setInvoiceDoneMessage(null);
     setInvoiceUploading(true);
     setInvoiceProcessedCount(0);
-    setInvoiceTotalCount(files.length);
+
+    const { unique, duplicateCount } = await dedupeFiles(files);
+    setInvoiceTotalCount(unique.length);
 
     const supabase = createClient();
     const results: string[] = [];
+    const failedNumbers: number[] = [];
 
     await Promise.all(
-      files.map(async (file) => {
+      unique.map(async (file, index) => {
         try {
           let toUpload: File | Blob = file;
           try {
@@ -126,14 +147,24 @@ export function CaptureScreen({ knownTerminals, defaultDate }: { knownTerminals:
           const box = suggested.boxCount !== null ? ` · 박스 ${suggested.boxCount}개` : "";
           results.push(`${name}${time}${box}`);
         } catch {
-          setInvoiceError("일부 버스송장 업로드에 실패했습니다. 다시 시도해주세요.");
+          failedNumbers.push(index + 1);
         } finally {
           setInvoiceProcessedCount((c) => c + 1);
         }
       }),
     );
 
-    if (results.length > 0) setInvoiceDoneMessage(`매칭 완료: ${results.join(", ")}`);
+    const notes = [
+      duplicateCount > 0 ? `중복 ${duplicateCount}장 제외` : null,
+      failedNumbers.length > 0 ? `${failedNumbers.join(", ")}번째 사진 업로드 실패` : null,
+    ].filter((n): n is string => n !== null);
+    const noteSuffix = notes.length > 0 ? ` (${notes.join(" · ")})` : "";
+
+    if (results.length > 0) {
+      setInvoiceDoneMessage(`매칭 완료: ${results.join(", ")}${noteSuffix}`);
+    } else if (failedNumbers.length > 0) {
+      setInvoiceError(`${failedNumbers.join(", ")}번째 사진 업로드에 실패했습니다. 다시 촬영해주세요.`);
+    }
     setInvoiceUploading(false);
   }
 

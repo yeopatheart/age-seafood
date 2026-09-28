@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ReviewScreen } from "@/components/review-screen";
+import { recentUnique } from "@/lib/recent-unique";
 
 function todayKST() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -46,10 +47,11 @@ export default async function ReviewPage() {
   }));
 
   const totalLabelPhotos = groups.reduce((sum, g) => sum + g.labelPhotoCount, 0);
+  const terminalNames = recentUnique(groups.map((g) => g.terminalName), 50);
 
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-4 pb-32">
-      <ReviewScreen tripDate={tripDate} groups={groups} totalLabelPhotos={totalLabelPhotos} />
+      <ReviewScreen tripDate={tripDate} groups={groups} totalLabelPhotos={totalLabelPhotos} terminalNames={terminalNames} />
     </main>
   );
 }

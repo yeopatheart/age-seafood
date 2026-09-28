@@ -6,11 +6,21 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Photo = { id: string; url: string };
 
+export const NEW_GROUP = "__new__";
+
 // 사진 여러 장을 가로로 스크롤하며 훑어볼 수 있게 보여준다. 썸네일을 누르면 원본 크기로
 // 확대해서 볼 수 있다 — 손글씨 확인처럼 작은 글씨를 읽어야 할 때 필요하다. 확대 화면에서는
-// 좌우 화살표로 같은 그룹의 다른 사진으로 바로 넘어갈 수 있다(그룹을 닫았다 다시 여는 것보다
-// 빠르게 훑어보기 위함 — 터미널을 바꾸는 기능은 여기 두지 않는다).
-export function PhotoStrip({ photos }: { photos: Photo[] }) {
+// 좌우 화살표로 같은 그룹의 다른 사진을 바로 훑어볼 수 있고, moveOptions·onMove가 주어지면
+// (택배송장 전용) 그 자리에서 다른 터미널로 옮길 수도 있다 — 오분류된 사진 한 장만 고치기 위함.
+export function PhotoStrip({
+  photos,
+  moveOptions,
+  onMove,
+}: {
+  photos: Photo[];
+  moveOptions?: string[];
+  onMove?: (photoId: string, targetName: string) => void;
+}) {
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
 
   if (photos.length === 0) return null;
@@ -55,7 +65,7 @@ export function PhotoStrip({ photos }: { photos: Photo[] }) {
             <img
               src={zoomed.url}
               alt="확대된 사진"
-              className="max-h-[75vh] max-w-full rounded-2xl object-contain"
+              className="max-h-[70vh] max-w-full rounded-2xl object-contain"
               onClick={(e) => e.stopPropagation()}
             />
 
@@ -77,6 +87,27 @@ export function PhotoStrip({ photos }: { photos: Photo[] }) {
             <p className="tabular-nums text-base font-medium text-zinc-300">
               {zoomedIndex + 1} / {photos.length}
             </p>
+          )}
+
+          {onMove && moveOptions && (
+            <select
+              defaultValue=""
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                if (!e.target.value) return;
+                onMove(zoomed.id, e.target.value);
+                setZoomedIndex(null);
+              }}
+              className="h-12 rounded-2xl bg-white px-4 text-lg font-medium text-zinc-900 outline-none"
+            >
+              <option value="">다른 그룹으로 이동...</option>
+              {moveOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+              <option value={NEW_GROUP}>새 그룹으로 분리</option>
+            </select>
           )}
         </div>
       )}

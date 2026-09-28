@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { Check, Calendar } from "lucide-react";
-import { renameGroup, updateDepartureTime, confirmGroups } from "@/app/actions";
+import { renameGroup, updateDepartureTime, confirmGroups, moveLabelPhoto } from "@/app/actions";
 import { formatDepartureTime } from "@/lib/format-departure-time";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DeleteDeliveryButton } from "@/components/delete-delivery-button";
 import { DeliveryPhotoRows } from "@/components/delivery-photo-rows";
+import { NEW_GROUP } from "@/components/photo-strip";
 
 type Photo = { id: string; url: string; photoType: "label" | "invoice" };
 type Group = {
@@ -24,10 +25,12 @@ export function ReviewScreen({
   tripDate,
   groups,
   totalLabelPhotos,
+  terminalNames,
 }: {
   tripDate: string;
   groups: Group[];
   totalLabelPhotos: number;
+  terminalNames: string[];
 }) {
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
@@ -62,6 +65,16 @@ export function ReviewScreen({
       input.value = formatted;
     } catch (e) {
       setError(e instanceof Error ? e.message : "출발시간 변경에 실패했습니다.");
+    }
+  }
+
+  async function handleMovePhoto(photoId: string, value: string) {
+    const targetName = value === NEW_GROUP ? window.prompt("새 그룹 이름을 입력해주세요.")?.trim() : value;
+    if (!targetName) return;
+    try {
+      await moveLabelPhoto(photoId, tripDate, targetName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "사진 이동에 실패했습니다.");
     }
   }
 
@@ -139,6 +152,8 @@ export function ReviewScreen({
               labelPhotos={group.photos.filter((p) => p.photoType === "label")}
               invoicePhotos={group.photos.filter((p) => p.photoType === "invoice")}
               invoiceBoxCount={group.invoiceBoxCount}
+              moveOptions={terminalNames.filter((name) => name !== group.terminalName)}
+              onMoveLabelPhoto={handleMovePhoto}
             />
           </Card>
         );

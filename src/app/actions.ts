@@ -95,6 +95,22 @@ export async function commitLabelPhotoGroups(
   revalidateAll();
 }
 
+// 확인 탭 확대 화면에서 "다른 그룹으로 이동"을 고르면 호출된다. AI가 라벨 사진 한 장을
+// 엉뚱한 터미널로 분류했을 때, 그룹 전체를 지우지 않고 그 사진만 옮길 수 있어야 한다.
+export async function moveLabelPhoto(photoId: string, tripDate: string, targetTerminalName: string) {
+  const terminalName = targetTerminalName.trim();
+  if (!terminalName) throw new Error("터미널명을 입력해주세요.");
+
+  const supabase = await createClient();
+  const userId = await requireUserId(supabase);
+  const deliveryId = await findOrCreateTrip(supabase, userId, tripDate, terminalName);
+
+  const { error } = await supabase.from("label_photos").update({ bus_trip_id: deliveryId }).eq("id", photoId);
+  if (error) throw new Error(error.message);
+
+  revalidateAll();
+}
+
 // 그룹(배송)의 터미널명을 고친다. 같은 이름의 다른 그룹과 자동으로 합쳐지지는 않는다 — 정말
 // 합치려면 사진을 개별적으로 이동한다(알려진 한계).
 export async function renameGroup(deliveryId: string, newName: string) {
