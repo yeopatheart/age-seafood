@@ -50,7 +50,12 @@ export default async function HistoryPage({
           // 필터를 적용해서 혹시 모를 pending 사진이 섞여 보이지 않게 한다.
           const deliveryPhotos = (photos ?? [])
             .filter((p) => p.bus_trip_id === delivery.trip_id && p.classification_status === "done")
-            .map((p) => ({ id: p.id, url: photoUrl(p.storage_path), photoType: p.photo_type }));
+            .map((p) => ({
+              id: p.id,
+              url: photoUrl(p.storage_path),
+              photoType: p.photo_type,
+              companyName: p.company_name,
+            }));
 
           return (
             <Card key={delivery.trip_id} className="space-y-4">

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createLimiter } from "@/lib/concurrency-limit";
-import { suggestTerminalName, suggestBusInvoiceInfo } from "@/app/vision-actions";
+import { suggestLabelInfo, suggestBusInvoiceInfo } from "@/app/vision-actions";
 import type { Database } from "@/lib/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -135,8 +135,8 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
           visionFormData.set("image", image, "photo.jpg");
           visionFormData.set("knownTerminals", JSON.stringify(knownTerminals));
 
-          const terminalName = await suggestTerminalName(visionFormData);
-          return { photoId, terminalName };
+          const info = await suggestLabelInfo(visionFormData);
+          return { photoId, ...info };
         }),
       ),
     );
@@ -147,11 +147,18 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
         const targetTripId = await findOrCreateTrip(bgSupabase, userId, tripDate, result.terminalName);
         await bgSupabase
           .from("label_photos")
-          .update({ bus_trip_id: targetTripId, classification_status: "done" })
+          .update({
+            bus_trip_id: targetTripId,
+            classification_status: "done",
+            company_name: result.companyName,
+          })
           .eq("id", result.photoId);
       } else {
         // 끝내 인식 못 했으면 "미확인"에 남되, 더 이상 분류 대기 중은 아니라고 표시한다.
-        await bgSupabase.from("label_photos").update({ classification_status: "done" }).eq("id", result.photoId);
+        await bgSupabase
+          .from("label_photos")
+          .update({ classification_status: "done", company_name: result.companyName })
+          .eq("id", result.photoId);
       }
     }
 

@@ -36,6 +36,8 @@ type LabelPhoto = {
   taken_by: string | null;
   taken_at: string;
   classification_status: ClassificationStatus;
+  // 택배송장(label) 사진에서만 채워진다 — 버스송장에는 해당 없어 항상 null.
+  company_name: string | null;
 };
 
 // 검수는 정상/문제있음 구분 없이 "검수완료" 하나뿐이다 (스와이프로 확인). 문제가 있으면 메모에 적는다.
@@ -81,10 +83,11 @@ export type Database = {
       >;
       label_photos: TableDef<
         LabelPhoto,
-        Omit<LabelPhoto, "id" | "taken_at" | "classification_status"> & {
+        Omit<LabelPhoto, "id" | "taken_at" | "classification_status" | "company_name"> & {
           id?: string;
           taken_at?: string;
           classification_status?: ClassificationStatus;
+          company_name?: string | null;
         }
       >;
       trip_reviews: TableDef<

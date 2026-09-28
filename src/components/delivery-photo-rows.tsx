@@ -1,6 +1,6 @@
 import { PhotoStrip } from "@/components/photo-strip";
 
-type Photo = { id: string; url: string };
+type Photo = { id: string; url: string; companyName?: string | null };
 
 // 버스송장 칩·택배송장 칩을 같은 너비로 고정해서 각 칩 옆에 그 종류의 사진이 나란히
 // 오도록 한다 — 위에 칩 두 개를 몰아서 보여주고 아래에 사진을 전부 섞어 보여주면

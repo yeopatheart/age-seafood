@@ -42,7 +42,12 @@ export default async function ReviewPage() {
       invoiceBoxCount: d.invoice_box_count,
       photos: (photos ?? [])
         .filter((p) => p.bus_trip_id === d.trip_id && p.classification_status === "done")
-        .map((p) => ({ id: p.id, url: photoUrl(p.storage_path), photoType: p.photo_type })),
+        .map((p) => ({
+          id: p.id,
+          url: photoUrl(p.storage_path),
+          photoType: p.photo_type,
+          companyName: p.company_name,
+        })),
     }))
     // 분류 대기 중인 사진만 있던(또는 전부 다른 그룹으로 옮겨져 텅 빈) 그룹은 숨긴다.
     .filter((g) => g.photos.length > 0);

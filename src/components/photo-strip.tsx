@@ -1,17 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ArrowRightLeft } from "lucide-react";
 
-type Photo = { id: string; url: string };
+type Photo = { id: string; url: string; companyName?: string | null };
 
 export const NEW_GROUP = "__new__";
 
+// 80px 썸네일 안에서 업체명이 한 줄에 들어가도록 글자 수에 맞춰 글자 크기를 줄인다. 정확한
+// 텍스트 폭 측정 대신 글자 수 기반 추정치를 쓰고, 그래도 넘치면 CSS truncate가 마지막 안전망이다.
+function fitFontSize(text: string): number {
+  const availableWidth = 68;
+  const estimated = Math.floor(availableWidth / text.length);
+  return Math.max(8, Math.min(12, estimated));
+}
+
 // 사진 여러 장을 가로로 스크롤하며 훑어볼 수 있게 보여준다. 썸네일을 누르면 원본 크기로
 // 확대해서 볼 수 있다 — 손글씨 확인처럼 작은 글씨를 읽어야 할 때 필요하다. 확대 화면에서는
-// 좌우 화살표로 같은 그룹의 다른 사진을 바로 훑어볼 수 있고, moveOptions·onMove가 주어지면
-// (택배송장 전용) 그 자리에서 다른 터미널로 옮길 수도 있다 — 오분류된 사진 한 장만 고치기 위함.
+// 좌우 화살표나 스와이프로 같은 그룹의 다른 사진을 바로 훑어볼 수 있고, moveOptions·onMove가
+// 주어지면(택배송장 전용) 그 자리에서 다른 터미널로 옮길 수도 있다 — 오분류된 사진 한 장만
+// 고치기 위함.
 export function PhotoStrip({
   photos,
   moveOptions,
@@ -23,6 +32,7 @@ export function PhotoStrip({
 }) {
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
   const [moveMenuOpen, setMoveMenuOpen] = useState(false);
+  const touchStartX = useRef<number | null>(null);
 
   if (photos.length === 0) return null;
 
@@ -31,6 +41,25 @@ export function PhotoStrip({
   function closeZoom() {
     setZoomedIndex(null);
     setMoveMenuOpen(false);
+  }
+
+  function goTo(index: number) {
+    setMoveMenuOpen(false);
+    setZoomedIndex(index);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || zoomedIndex === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+
+    const SWIPE_THRESHOLD = 50;
+    if (deltaX > SWIPE_THRESHOLD && zoomedIndex > 0) goTo(zoomedIndex - 1);
+    else if (deltaX < -SWIPE_THRESHOLD && zoomedIndex < photos.length - 1) goTo(zoomedIndex + 1);
   }
 
   return (
@@ -47,6 +76,14 @@ export function PhotoStrip({
                 깨진 이미지로 보이는 버그가 있었다(unoptimized로 next/image가 그 경로를 타지 않게
                 하고, 브라우저가 쿠키를 실어 이 경로를 직접 요청하게 한다). */}
             <Image src={`${photo.url}?w=160`} alt="사진" fill unoptimized className="object-cover" />
+            {photo.companyName && (
+              <span
+                className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-1 pb-1 pt-3 text-center font-semibold text-white"
+                style={{ fontSize: `${fitFontSize(photo.companyName)}px` }}
+              >
+                {photo.companyName}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -67,13 +104,16 @@ export function PhotoStrip({
             <X className="h-6 w-6" strokeWidth={2.5} />
           </button>
 
-          <div className="relative flex w-full flex-1 items-center justify-center">
+          <div
+            className="relative flex w-full flex-1 items-center justify-center"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             {zoomedIndex > 0 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMoveMenuOpen(false);
-                  setZoomedIndex(zoomedIndex - 1);
+                  goTo(zoomedIndex - 1);
                 }}
                 className="absolute left-1 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
                 aria-label="이전 사진"
@@ -94,8 +134,7 @@ export function PhotoStrip({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setMoveMenuOpen(false);
-                  setZoomedIndex(zoomedIndex + 1);
+                  goTo(zoomedIndex + 1);
                 }}
                 className="absolute right-1 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
                 aria-label="다음 사진"

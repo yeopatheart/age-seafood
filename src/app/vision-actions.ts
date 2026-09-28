@@ -58,13 +58,21 @@ function normalizeTerminalName(raw: string, knownTerminals: string[]): string {
   return raw;
 }
 
-// 라벨 사진에서 도착 터미널명을 "제안"만 한다 — 사람이 확인 탭에서 확인·수정한다.
-// knownTerminals를 주면 기존에 쓰던 이름과 표기를 통일하도록 유도한다(예: "남부" 대신 "남부터미널").
-// formData는 { image: Blob, knownTerminals: JSON string } — 스토리지 경로가 아니라 브라우저가
-// 이미 압축해둔 사진 바이트를 직접 받아서, 업로드와 이 호출을 동시에 시작할 수 있게 한다.
-export async function suggestTerminalName(formData: FormData): Promise<string | null> {
+export type LabelPhotoInfo = {
+  terminalName: string | null;
+  companyName: string | null;
+};
+
+// 라벨 사진에서 도착 터미널명과 고객명(업체명)을 "제안"만 한다 — 사람이 확인 탭에서 확인·
+// 수정한다. knownTerminals를 주면 기존에 쓰던 이름과 표기를 통일하도록 유도한다(예: "남부"
+// 대신 "남부터미널"). formData는 { image: Blob, knownTerminals: JSON string } — 스토리지
+// 경로가 아니라 브라우저가 이미 압축해둔 사진 바이트를 직접 받아서, 업로드와 이 호출을
+// 동시에 시작할 수 있게 한다.
+export async function suggestLabelInfo(formData: FormData): Promise<LabelPhotoInfo> {
+  const empty: LabelPhotoInfo = { terminalName: null, companyName: null };
+
   const buffer = await bufferFromFormData(formData);
-  if (!buffer) return null;
+  if (!buffer) return empty;
   const knownTerminals = knownTerminalsFromFormData(formData);
   const base64 = await resizeForVision(buffer);
 
@@ -73,11 +81,11 @@ export async function suggestTerminalName(formData: FormData): Promise<string | 
     const knownList = knownTerminals.length > 0 ? knownTerminals.join(", ") : "(없음)";
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 200,
+      max_tokens: 250,
       tools: [
         {
-          name: "report_terminal",
-          description: "택배박스 라벨 사진에서 읽은 도착 터미널명을 보고한다.",
+          name: "report_label_info",
+          description: "택배박스 라벨 사진에서 읽은 도착 터미널명과 고객명(업체명)을 보고한다.",
           input_schema: {
             type: "object",
             properties: {
@@ -85,12 +93,16 @@ export async function suggestTerminalName(formData: FormData): Promise<string | 
                 type: ["string", "null"],
                 description: "라벨에 적힌 도착 터미널명. 찾지 못했거나 확신할 수 없으면 null.",
               },
+              company_name: {
+                type: ["string", "null"],
+                description: "라벨에 적힌 고객명 또는 업체명(수령인). 찾지 못했거나 확신할 수 없으면 null.",
+              },
             },
-            required: ["terminal_name"],
+            required: ["terminal_name", "company_name"],
           },
         },
       ],
-      tool_choice: { type: "tool", name: "report_terminal" },
+      tool_choice: { type: "tool", name: "report_label_info" },
       messages: [
         {
           role: "user",
@@ -98,7 +110,13 @@ export async function suggestTerminalName(formData: FormData): Promise<string | 
             { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
             {
               type: "text",
-              text: `이 사진은 택배박스에 붙은 라벨입니다. 라벨에 적힌 도착 터미널명을 찾아 report_terminal 도구로 보고해주세요. 이미 쓰이고 있는 터미널명 목록: ${knownList}. 라벨에 "서울 남부"처럼 지역명이 함께 적혀 있어도, 그 안에 목록에 있는 이름이 포함되어 있으면(예: "서울 남부"는 "남부"와 같은 곳) 목록의 표기 그대로 답하세요. 목록에 없는 새 터미널이면 라벨에 적힌 대로 답하세요. 손글씨를 알아보기 어렵거나 확신할 수 없으면 terminal_name을 null로 보고하세요.`,
+              text: `이 사진은 택배박스에 붙은 라벨입니다. report_label_info 도구로 다음을 보고해주세요.
+
+(1) 도착 터미널명 — 이미 쓰이고 있는 터미널명 목록: ${knownList}. 라벨에 "서울 남부"처럼 지역명이 함께 적혀 있어도, 그 안에 목록에 있는 이름이 포함되어 있으면(예: "서울 남부"는 "남부"와 같은 곳) 목록의 표기 그대로 답하세요. 목록에 없는 새 터미널이면 라벨에 적힌 대로 답하세요.
+
+(2) 고객명 또는 업체명(수령인 이름) — 라벨에 "고객명"으로 적혀 있는 경우가 많습니다.
+
+두 항목은 서로 독립적으로 판단하세요 — 하나를 알아보기 어렵거나 확신할 수 없다고 해서 나머지까지 null로 보고하지 마세요.`,
             },
           ],
         },
@@ -106,13 +124,16 @@ export async function suggestTerminalName(formData: FormData): Promise<string | 
     });
 
     const toolUse = message.content.find((c) => c.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") return null;
+    if (!toolUse || toolUse.type !== "tool_use") return empty;
 
-    const input = toolUse.input as { terminal_name: string | null };
+    const input = toolUse.input as { terminal_name: string | null; company_name: string | null };
     const name = input.terminal_name?.trim();
-    return name ? normalizeTerminalName(name, knownTerminals) : null;
+    return {
+      terminalName: name ? normalizeTerminalName(name, knownTerminals) : null,
+      companyName: input.company_name?.trim() || null,
+    };
   } catch {
-    return null;
+    return empty;
   }
 }
 
