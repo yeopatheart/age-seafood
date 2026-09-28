@@ -48,9 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <NavBar />
-        {/* relative: 촬영 탭처럼 탭 바로 위까지 꽉 채워야 하는 화면이 absolute inset-0으로
-            이 pb-28(하단 탭 여유 공간)까지 무시하고 채울 수 있는 기준점이 된다. */}
-        <div className="relative flex-1 bg-zinc-100 pb-28">{children}</div>
+        {/* flex flex-col: 자식(각 페이지의 main)이 h-full(%) 대신 flex-1로 남은 높이를 채울 수
+            있게 한다 — 중첩된 flex 트리에서 height:100%는 안정적으로 상속되지 않는 경우가 많다.
+            flex-1을 안 쓰는 페이지는 원래처럼 콘텐츠 높이만큼만 차지해서 기존 화면은 그대로다. */}
+        <div className="flex flex-1 flex-col bg-zinc-100 pb-28">{children}</div>
       </body>
     </html>
   );

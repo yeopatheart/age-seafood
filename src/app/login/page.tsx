@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -37,7 +38,15 @@ export default function LoginPage() {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-6 rounded-3xl bg-white p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_16px_32px_-12px_rgba(16,24,40,0.16)]"
       >
-        <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900">age-seafood</h1>
+        <Image
+          src="/logo-navy.png"
+          alt="통영아재수산"
+          width={56}
+          height={56}
+          unoptimized
+          className="mx-auto"
+          priority
+        />
 
         <div className="space-y-2">
           <label htmlFor="email" className="text-base font-semibold text-zinc-700">
