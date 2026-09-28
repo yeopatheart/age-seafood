@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 type Photo = { id: string; url: string };
 
@@ -47,6 +47,17 @@ export function PhotoStrip({
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-zinc-950/95 p-4"
           onClick={() => setZoomedIndex(null)}
         >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setZoomedIndex(null);
+            }}
+            className="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20"
+            aria-label="닫기"
+          >
+            <X className="h-6 w-6" strokeWidth={2.5} />
+          </button>
+
           <div className="relative flex w-full flex-1 items-center justify-center">
             {zoomedIndex > 0 && (
               <button

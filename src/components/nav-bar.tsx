@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/sign-out-button";
+import { UserMenu } from "@/components/user-menu";
 import { BottomNav } from "@/components/bottom-nav";
 
 export async function NavBar() {
@@ -9,6 +9,8 @@ export async function NavBar() {
   const { data } = await supabase.auth.getClaims();
 
   if (!data?.claims) return null;
+
+  const label = data.claims.email?.split("@")[0] ?? "계정";
 
   return (
     <>
@@ -21,7 +23,7 @@ export async function NavBar() {
           >
             설정
           </Link>
-          <SignOutButton />
+          <UserMenu label={label} />
         </div>
       </header>
       <BottomNav />
