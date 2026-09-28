@@ -19,7 +19,9 @@ export async function NavBar() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-2 bg-white px-4 py-3.5">
+      {/* h-16(고정): 촬영 탭이 "헤더+탭바를 뺀 나머지 높이"를 계산할 때 기준으로 쓸 수 있도록
+          내용물 크기와 무관하게 높이를 고정해둔다. */}
+      <header className="flex h-16 items-center justify-between gap-2 bg-white px-4">
         {/* next/image의 자체 최적화가 이 파일에서 "not a valid image"로 실패해서(사진 프록시
             때와 같은 내부 요청 문제로 보임) unoptimized로 우회한다 — 작은 고정 크기 로고라
             리사이즈 이득도 크지 않다. */}

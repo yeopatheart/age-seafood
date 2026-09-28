@@ -48,10 +48,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         <NavBar />
-        {/* flex flex-col: 자식(각 페이지의 main)이 h-full(%) 대신 flex-1로 남은 높이를 채울 수
-            있게 한다 — 중첩된 flex 트리에서 height:100%는 안정적으로 상속되지 않는 경우가 많다.
-            flex-1을 안 쓰는 페이지는 원래처럼 콘텐츠 높이만큼만 차지해서 기존 화면은 그대로다. */}
-        <div className="flex flex-1 flex-col bg-zinc-100 pb-28">{children}</div>
+        {/* display:flex로 바꿨더니 확인·이력처럼 스크롤이 필요한 긴 페이지가 flex-shrink 때문에
+            카드가 찌그러지는 회귀가 생겨서 원래(block)로 되돌렸다 — 촬영 탭의 높이 채우기는
+            capture/page.tsx 쪽에서 이 wrapper를 건드리지 않고 자체적으로 해결한다. */}
+        <div className="flex-1 bg-zinc-100 pb-28">{children}</div>
       </body>
     </html>
   );
