@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Calendar } from "lucide-react";
 import { renameGroup, updateDepartureTime, confirmGroups, moveLabelPhoto } from "@/app/actions";
 import { formatDepartureTime } from "@/lib/format-departure-time";
@@ -32,12 +33,28 @@ export function ReviewScreen({
   totalLabelPhotos: number;
   terminalNames: string[];
 }) {
+  const router = useRouter();
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const visibleGroups = groups.filter((g) => !deletedIds.has(g.id));
+
+  // 업로드 직후엔 AI 분류가 아직 백그라운드에서 진행 중이라 "미확인"으로 보일 수 있다 — 분류가
+  // 끝나는 대로(서버가 revalidatePath로 캐시를 갱신해두면) 화면에도 반영되도록 잠깐 동안만
+  // 주기적으로 새로고침한다. 계속 미확인이면(정말 인식 못 한 경우) 일정 시간 뒤 멈춘다.
+  const hasUnrecognized = visibleGroups.some((g) => g.terminalName === "미확인");
+  useEffect(() => {
+    if (!hasUnrecognized) return;
+    let count = 0;
+    const interval = setInterval(() => {
+      count += 1;
+      router.refresh();
+      if (count >= 10) clearInterval(interval);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [hasUnrecognized, router]);
 
   function toggleChecked(id: string) {
     setChecked((prev) => {
