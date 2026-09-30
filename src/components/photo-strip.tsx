@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ArrowRightLeft } from "lucide-react";
 
-type Photo = { id: string; url: string; companyName?: string | null };
+type Photo = { id: string; url: string; companyName?: string | null; companyNameSuggestion?: string | null };
 
 export const NEW_GROUP = "__new__";
 
@@ -189,6 +189,17 @@ export function PhotoStrip({
               </button>
             )}
           </div>
+
+          {zoomed.companyName && (
+            <div className="text-center">
+              <p className="text-lg font-semibold text-white">{zoomed.companyName}</p>
+              {zoomed.companyNameSuggestion && (
+                <p className="text-sm font-medium text-amber-300">
+                  혹시 &apos;{zoomed.companyNameSuggestion}&apos; 아닌가요?
+                </p>
+              )}
+            </div>
+          )}
 
           {photos.length > 1 && (
             <p className="tabular-nums text-base font-medium text-zinc-300">

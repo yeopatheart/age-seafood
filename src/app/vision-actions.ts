@@ -2,7 +2,6 @@
 
 import sharp from "sharp";
 import { getAnthropicClient } from "@/lib/anthropic-client";
-import { splitTrailingNumber } from "@/lib/company-name";
 
 // 클라이언트가 이미 AI 인식용으로 축소해서 보내므로(capture-screen.tsx), 여기서는 그 값을
 // 다시 깎지 않도록 Claude 표준 모델의 실질 해상도 한계(장변 약 1568px, 그 이상은 인식 품질에
@@ -68,45 +67,6 @@ function normalizeTerminalName(raw: string, knownTerminals: string[]): string {
     }
   }
   return raw;
-}
-
-// 두 문자열이 몇 글자나 다른지(편집 거리) 계산한다 — 손글씨 한두 글자를 다르게 읽어도
-// 같은 사람으로 볼 수 있는지 판단하는 데 쓴다.
-function levenshtein(a: string, b: string): number {
-  const rows = a.length + 1;
-  const cols = b.length + 1;
-  const dp: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
-  for (let i = 0; i < rows; i++) dp[i][0] = i;
-  for (let j = 0; j < cols; j++) dp[0][j] = j;
-  for (let i = 1; i < rows; i++) {
-    for (let j = 1; j < cols; j++) {
-      dp[i][j] =
-        a[i - 1] === b[j - 1]
-          ? dp[i - 1][j - 1]
-          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[a.length][b.length];
-}
-
-// 같은 담당자가 계속 같은 손글씨체로 쓰기 때문에, 이미 등록된 고객명 목록과 한두 글자만
-// 다르면 같은 사람으로 보고 표기를 통일한다(터미널명 정규화와 같은 발상). 이름이 짧을수록
-// 오독 한 글자의 비중이 크므로 엄격하게, 길수록 조금 더 관대하게 허용한다.
-function normalizeCompanyName(raw: string, knownCompanyNames: string[]): string {
-  const { base, suffix } = splitTrailingNumber(raw);
-  if (!base) return raw;
-
-  let bestMatch: string | null = null;
-  let bestDistance = Infinity;
-  for (const known of knownCompanyNames) {
-    const distance = levenshtein(base, known);
-    const threshold = base.length <= 2 ? 0 : base.length <= 4 ? 1 : 2;
-    if (distance <= threshold && distance < bestDistance) {
-      bestDistance = distance;
-      bestMatch = known;
-    }
-  }
-  return (bestMatch ?? base) + suffix;
 }
 
 export type LabelPhotoInfo = {
@@ -189,7 +149,11 @@ export async function suggestLabelInfo(formData: FormData): Promise<LabelPhotoIn
     const companyName = input.company_name?.trim();
     return {
       terminalName: name ? normalizeTerminalName(name, knownTerminals) : null,
-      companyName: companyName ? normalizeCompanyName(companyName, knownCompanyNames) : null,
+      // 고객명은 더 이상 자동으로 기존 이름에 맞춰 덮어쓰지 않는다 — AI가 읽은 그대로 저장하고,
+      // 비슷한 기존 이름은 확인 탭에서 참고용 제안으로만 보여준다(company-name.ts의
+      // findSimilarCompanyName). 접두어가 같은 서로 다른 업체(예: "스시아타이"·"스시미우라")를
+      // 편집거리만으로 같은 업체로 잘못 합치는 사고가 있었다.
+      companyName: companyName ?? null,
     };
   } catch {
     return empty;

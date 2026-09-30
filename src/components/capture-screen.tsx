@@ -19,11 +19,9 @@ type UploadResult = { storagePath: string; toVision: File | Blob };
 
 export function CaptureScreen({
   knownTerminals,
-  knownCompanyNames,
   defaultDate,
 }: {
   knownTerminals: string[];
-  knownCompanyNames: string[];
   defaultDate: string;
 }) {
   const router = useRouter();
@@ -84,7 +82,6 @@ export function CaptureScreen({
     const formData = new FormData();
     formData.set("storagePaths", JSON.stringify(succeeded.map((s) => s.storagePath)));
     formData.set("knownTerminals", JSON.stringify(knownTerminals));
-    formData.set("knownCompanyNames", JSON.stringify(knownCompanyNames));
     succeeded.forEach((s, i) => formData.set(`image_${i}`, s.toVision, "photo.jpg"));
     return formData;
   }

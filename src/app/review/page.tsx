@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { ReviewScreen } from "@/components/review-screen";
 import { recentUnique } from "@/lib/recent-unique";
 import { photoUrl } from "@/lib/photo-url";
+import { getConfirmedCompanyNames } from "@/lib/confirmed-company-names";
+import { findSimilarCompanyName } from "@/lib/company-name";
 
 function todayKST() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
@@ -33,6 +35,10 @@ export default async function ReviewPage() {
   // 남는 문제가 있었다. 대신 진행 상황은 pendingCount로 따로 보여준다.
   const pendingCount = (photos ?? []).filter((p) => p.classification_status === "pending").length;
 
+  // AI가 읽은 고객명은 더 이상 자동으로 기존 이름에 맞춰 덮어써지지 않는다(vision-actions.ts) —
+  // 대신 사람이 확정한 이름 중 비슷한 게 있으면 여기서 참고용 제안으로만 계산해 보여준다.
+  const confirmedCompanyNames = await getConfirmedCompanyNames(supabase);
+
   const groups = (deliveries ?? [])
     .map((d) => ({
       id: d.trip_id,
@@ -46,6 +52,9 @@ export default async function ReviewPage() {
           url: photoUrl(p.storage_path),
           photoType: p.photo_type,
           companyName: p.company_name,
+          companyNameSuggestion: p.company_name
+            ? findSimilarCompanyName(p.company_name, confirmedCompanyNames)
+            : null,
         })),
     }))
     // 분류 대기 중인 사진만 있던(또는 전부 다른 그룹으로 옮겨져 텅 빈) 그룹은 숨긴다.

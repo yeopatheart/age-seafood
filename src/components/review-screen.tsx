@@ -11,7 +11,13 @@ import { DeleteDeliveryButton } from "@/components/delete-delivery-button";
 import { DeliveryPhotoRows } from "@/components/delivery-photo-rows";
 import { NEW_GROUP } from "@/components/photo-strip";
 
-type Photo = { id: string; url: string; photoType: "label" | "invoice"; companyName?: string | null };
+type Photo = {
+  id: string;
+  url: string;
+  photoType: "label" | "invoice";
+  companyName?: string | null;
+  companyNameSuggestion?: string | null;
+};
 type Group = {
   id: string;
   terminalName: string;

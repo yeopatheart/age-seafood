@@ -5,8 +5,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createLimiter } from "@/lib/concurrency-limit";
 import { suggestLabelInfo, suggestBusInvoiceInfo } from "@/app/vision-actions";
-import { splitTrailingNumber } from "@/lib/company-name";
-import { recentUnique } from "@/lib/recent-unique";
+import { getConfirmedCompanyNames } from "@/lib/confirmed-company-names";
 import type { Database } from "@/lib/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -123,20 +122,11 @@ export async function commitLabelPhotosAsync(tripDate: string, formData: FormDat
     const bgSupabase = await createClient();
     const limit = createLimiter(4);
 
-    // 같은 담당자가 항상 비슷한 글씨체로 쓰므로, 최근에 이미 등록된 고객명 목록을 참고 자료로
-    // 준다 — 터미널명에 쓰던 것과 같은 발상. 번호(예: "박영희 2")는 빼고 이름만 중복 제거한다.
-    const { data: recentCompanyRows } = await bgSupabase
-      .from("label_photos")
-      .select("company_name")
-      .not("company_name", "is", null)
-      .order("taken_at", { ascending: false })
-      .limit(300);
-    const knownCompanyNames = recentUnique(
-      (recentCompanyRows ?? [])
-        .map((r) => (r.company_name ? splitTrailingNumber(r.company_name).base : ""))
-        .filter((name) => name.length > 0),
-      100,
-    );
+    // 같은 담당자가 항상 비슷한 글씨체로 쓰므로, 사람이 확정한 고객명 목록을 AI 프롬프트의
+    // 참고 자료로 준다 — 검수 전 AI 추측까지 섞으면 한 번의 오독이 다음 추측을 오염시킨다
+    // (confirmed-company-names.ts). 이 목록은 더 이상 결과를 자동으로 덮어쓰는 데 쓰이지
+    // 않는다 — 그건 review 화면에서 사람에게 참고용 제안으로만 보여준다.
+    const knownCompanyNames = await getConfirmedCompanyNames(bgSupabase);
 
     // AI 호출(느림)은 동시에 여러 개 진행하되, 그룹 생성은 한 번에 하나씩만 한다 — 같은 배치에
     // 같은 터미널로 갈 사진이 여럿이면, find-or-create가 동시에 겹쳐서 같은 이름의 그룹이
